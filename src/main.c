@@ -18,7 +18,12 @@ const char* username = "sing1168";
 #include "stm32f0xx.h"
 #include <stdint.h>
 
+#define FIELD_SIZE 8
+
 void internal_clock();
+
+int8_t p1_field[FIELD_SIZE][FIELD_SIZE] = {0};
+int8_t p2_field[FIELD_SIZE][FIELD_SIZE] = {0};
 
 int main() {
     internal_clock();
@@ -31,5 +36,5 @@ int main() {
     // phase 2 - turn by turn game
 
     // phase 3 - post game stats
-
+    
 }

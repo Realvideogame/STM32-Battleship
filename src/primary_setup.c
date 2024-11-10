@@ -133,6 +133,26 @@ SET A BIT OR SOMETHING IDK
 GO BACK TO MAIN
 */
 
+void setup_turn_timer(void){
+    RCC -> APB1ENR |= RCC_APB1ENR_TIM7EN;
+    TIM7 -> PSC = (48000 - 1); //configures timer to go off every 1 min 
+    TIM7 -> ARR = (1250 - 1);
+    TIM7 -> DIER = TIM_DIER_UIE; //enables interrupt update
+    NVIC -> ISER[0] = 1<<TIM7_IRQn; //enables timer interrupt
+    TIM7 -> CR1 |= TIM_CR1_CEN;
+}
+
+void TIM7_IRQHandler(void){
+    TIM7 -> SR &= ~TIM_SR_UIF; //registers interrupt
+    setup_buttons();
+}
+
+void tushysaysTurnOffTimer(void){
+    TIM7 -> CR1 &= ~TIM_CR1_CEN; //turns off timer
+    //TIM7->DIER &= ~TIM_DIER_UIE; //turns off update for interrupt, dno if needed
+    NVIC -> ICER[0] = 1<<TIM7_IRQn; //turns off timer interrupt for NVIC
+}
+
 void EXTI0_1IRQHANDLER(){
 
 }

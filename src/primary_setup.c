@@ -11,11 +11,14 @@ void swap_player(void){
     //assume only called to switch the turn
     if(turn){
         //mask 6, unmask other 6
+        //i will wire this to PC0-5
         turn = 0;
+        EXTI->IMR = 0b111111;
     }
     else{
         //unmask 6, mask other 6
         turn = 1;
+        EXTI->IMR = 0b111111000000;
     }
 }
 
@@ -147,12 +150,17 @@ void TIM7_IRQHandler(void){
     setup_buttons();
 }
 
-void tushysaysTurnOffTimer(void){
+void disable_turn_timer(void){
     TIM7 -> CR1 &= ~TIM_CR1_CEN; //turns off timer
     //TIM7->DIER &= ~TIM_DIER_UIE; //turns off update for interrupt, dno if needed
     NVIC -> ICER[0] = 1<<TIM7_IRQn; //turns off timer interrupt for NVIC
 }
-
+/*
+To be written
+Must do the following:
+Acknowledge interrupt, isolate pressed button, indicate action to main
+Possible dma?
+*/
 void EXTI0_1IRQHANDLER(){
 
 }

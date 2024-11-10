@@ -1,19 +1,11 @@
 /**
   ******************************************************************************
-  * @file    main.c
-  * @author  Weili An, Niraj Menon
-  * @date    Feb 7, 2024
-  * @brief   ECE 362 Lab 7 student template
+  * file    main.c
+  * author  Team 39
+  * date    Nov 2024
+  * brief   Battleship primary main
   ******************************************************************************
 */
-
-/*******************************************************************************/
-
-// Fill out your username!  Even though we're not using an autotest, 
-// it should be a habit to fill out your username in this field now.
-const char* username = "sing1168";
-
-/*******************************************************************************/ 
 
 #include "stm32f0xx.h"
 #include <stdint.h>

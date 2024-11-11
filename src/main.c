@@ -7,48 +7,13 @@
   ******************************************************************************
 */
 
+
 #include "stm32f0xx.h"
+#include "drawing_utility.c"
 #include <stdint.h>
-
-#define FIELD_WIDTH 9
-#define FIELD_HEIGHT 12
-#define NUM_SHIPS 5
-
-void internal_clock();
-
-// battleship function
-// TODO: move to header
-int move_cursor(player*);
-int place_ship(player* p);
-
-int8_t ship_size[NUM_SHIPS] = {5, 4, 3, 2, 2};
+#include "primary_setup.h"
 
 
-
-typedef struct _player{
-  int8_t x; // Player's cursor x-cord
-  int8_t y; // Player's cursor y-cord
-
-  int8_t field[FIELD_HEIGHT][FIELD_WIDTH];// Fields of each player's ships
-  // 0 - Empty
-  // 1 - Ship
-  // 2 - missed
-  // 3 - hit
-
-  int8_t input; // player's input stored as XXABCDEF
-  // A - Up
-  // B - Down
-  // C - Left
-  // D - Right
-  // E - rotate
-  // F - fire / place
-
-  // ship placement variables
-  int8_t ship_index; // current ship being placed
-  int8_t rotation; // Ship rotation (0 - vert, 1 - horz)
-  
-
-} player;
 
 player player_1;
 player player_2;
@@ -76,6 +41,9 @@ int main() {
     // Battleship
     // phase 1 - placeing ships
     // 120 sec total
+    //tbd: find correct rotation
+    LCD_direction(1);
+    mapgen(); //display empty map
     start_timer(120);
     while(timer_set && ((player_1.ship_index < NUM_SHIPS) || (player_2.ship_index < NUM_SHIPS))) { 
 
@@ -101,15 +69,23 @@ int move_cursor(player* p) {
   switch (p->input & 0b00111111) {
     case 0b100000: // Move Cursor Up
       if (p->y != 0) p->y -= 1;
+      square_clear(p->x, (p->y)-1,p);
+      draw_cursor(p->x,p->y);
       break;
     case 0b010000: // Move Cursor Down
       if(p->y < (FIELD_HEIGHT - (1-p->rotation) * ship_size[p->ship_index])) p->y += 1;
+      square_clear(p->x, (p->y)+1,p);
+      draw_cursor(p->x,p->y);
       break;
     case 0b001000: // Move Cursor Left
       if(p->x != 0) p->x -= 1;
+      square_clear((p->x)+1, p->y,p);
+      draw_cursor(p->x,p->y);
       break;
     case 0b000100: // Move Cursor Right
       if(p->x < (FIELD_WIDTH - (p->rotation)*ship_size[p->ship_index])) p->x += 1;
+      square_clear((p->x)-1, p->y,p);
+      draw_cursor(p->x,p->y);
       break;
   }
   return 0;

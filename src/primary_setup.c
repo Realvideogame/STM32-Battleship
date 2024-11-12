@@ -1,6 +1,7 @@
 #include <primary_setup.h>
 #include <stm32f091xc.h>
-
+volatile uint8_t dmaData; //variable to store data
+uint8_t txBuffer[128];
 
 /*
 swap_player: switch buttons and turn value
@@ -128,6 +129,11 @@ void init_master(void) {
     SPI2 -> CR2 |= (SPI_CR2_SSOE | SPI_CR2_NSSP); //Enable SS Output enable bit and enable NSSP
     SPI2 -> CR2 |= SPI_CR2_TXDMAEN; //Set the TXDMAEN bit to enable DMA transfers on transmit buffer empty
 
+    DMA1_Channel5->CPAR = (uint32_t)(& (SPI2 -> DR));
+    DMA1_Channel5->CMAR = (uint32_t)txBuffer; 
+    DMA1_Channel5->CNDTR = 128; //size of data, can be adjusted as needed
+    DMA1_Channel5->CCR = DMA_CCR_MINC | DMA_CCR_DIR | DMA_CCR_TCIE | DMA_CCR_EN; 
+
     SPI2 -> CR1 |= SPI_CR1_SPE; //Enable the SPI2 Channel
 }
 
@@ -145,6 +151,12 @@ void init_slave(void) {
     SPI2 -> CR2 = (SPI_CR2_DS_0 | SPI_CR2_DS_1 | SPI_CR2_DS_2 | SPI_CR2_DS_3); //Setting data size to 16 bits (NEED TO CHANGE?)
     SPI2 -> CR1 &= ~SPI_CR1_MSTR; //Congigure as slave
     SPI2->CR2 |= SPI_CR2_RXDMAEN;
+
+    //dma configuration for spi2
+    DMA1_Channel4 -> CPAR = (uint32_t)(& (SPI2 -> DR));
+    DMA1_Channel4 -> CMAR = (uint32_t) (& dmaData);
+    DMA1_Channel4 -> CNDTR = 128;
+    DMA1_Channel4 -> CCR = DMA_CCR_MINC | DMA_CCR_TCIE | DMA_CCR_EN;           
     SPI2->CR1 |= SPI_CR1_SPE; //Enable SPI2
 }
 

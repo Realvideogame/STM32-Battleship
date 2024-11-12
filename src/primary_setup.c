@@ -1,6 +1,7 @@
 #include <primary_setup.h>
 #include <stm32f091xc.h>
-
+volatile uint8_t dmaData; //variable to store data
+uint8_t txBuffer[128];
 
 /*
 swap_player: switch buttons and turn value
@@ -104,6 +105,32 @@ void start_new_round_LED(void) {
     TIM1 -> CR1 |= TIM_CR1_CEN; // Start or restart TIM1 counter
 }
 
+
+void setup_dma(void) {
+    RCC -> AHBENR |= RCC_AHBENR_DMA1EN;
+    DMA1_Channel5 -> CPAR = (uint32_t)(& (SPI2 -> DR));
+    DMA1_Channel5 -> CMAR = (uint32_t) txBuffer;
+    DMA1_Channel5 -> CNDTR = sizeof(txBuffer);
+    DMA1_Channel5 -> CCR = DMA_CCR_MINC | DMA_CCR_DIR | DMA_CCR_TCIE | DMA_CCR_EN;
+
+    DMA1_Channel4 -> CPAR = (uint32_t)(& (SPI2 -> DR));
+    DMA1_Channel4 -> CMAR = (uint32_t) (& dmaData);
+    DMA1_Channel4 -> CNDTR = 128; //size of data, can be adjusted as necessary
+    DMA1_Channel4 -> CCR = DMA_CCR_MINC | DMA_CCR_TCIE | DMA_CCR_EN;           
+    SPI2->CR1 |= SPI_CR1_SPE; //Enable SPI2
+
+    NVIC->ISER[0] |= (1 << DMA1_Channel4_5_IRQn);
+}
+
+void DMA1_Channel4_5_IRQHandler(void) {
+    if (DMA1->ISR & DMA_ISR_TCIF5) {
+        DMA1->IFCR |= DMA_IFCR_CTCIF5;
+    }
+    if (DMA1->ISR & DMA_ISR_TCIF4) {
+        DMA1->IFCR |= DMA_IFCR_CTCIF4;
+    }
+}
+
 /* FUNCTION HEADER:
 SPI communication between microprocessors
 PB12 - PB14 are connected from master to PB12, PB13, and PB15 on slave
@@ -127,7 +154,6 @@ void init_master(void) {
     SPI2 -> CR1 |= SPI_CR1_MSTR; //Configure the SPI channel to be in "master configuration"
     SPI2 -> CR2 |= (SPI_CR2_SSOE | SPI_CR2_NSSP); //Enable SS Output enable bit and enable NSSP
     SPI2 -> CR2 |= SPI_CR2_TXDMAEN; //Set the TXDMAEN bit to enable DMA transfers on transmit buffer empty
-
     SPI2 -> CR1 |= SPI_CR1_SPE; //Enable the SPI2 Channel
 }
 
@@ -144,7 +170,7 @@ void init_slave(void) {
     SPI2 -> CR1 &= ~SPI_CR1_SPE; //Disable the SPI2 Channel first
     SPI2 -> CR2 = (SPI_CR2_DS_0 | SPI_CR2_DS_1 | SPI_CR2_DS_2 | SPI_CR2_DS_3); //Setting data size to 16 bits (NEED TO CHANGE?)
     SPI2 -> CR1 &= ~SPI_CR1_MSTR; //Congigure as slave
-    SPI2->CR2 |= SPI_CR2_RXDMAEN;
+    SPI2->CR2 |= SPI_CR2_RXDMAEN;          
     SPI2->CR1 |= SPI_CR1_SPE; //Enable SPI2
 }
 
@@ -206,12 +232,74 @@ Acknowledge interrupt, isolate pressed button, indicate action to main
 Possible dma?
 */
 void EXTI0_1IRQHANDLER(){
-
+//pc0,pc1
+//owned by player 2
+if(EXTI->PR & 0b1){
+    EXTI->PR = EXTI_PR_PR0;
+    player_2->input = 0b1;
+}
+else if (EXTI->PR & (0b1 << 1))
+{
+    EXTI->PR = EXTI_PR_PR1;
+    player_2->input = 0b1 <<1;
+}
 }
 void EXTI2_3_IRQHandler(){
-
+//pc2,3 owned by player 2
+if(EXTI->PR & 0b1<<2){
+    EXTI->PR = EXTI_PR_PR2;
+    player_2->input = 0b1<<2;
+}
+else if (EXTI->PR & (0b1 << 3))
+{
+    EXTI->PR = EXTI_PR_PR3;
+    player_2->input = 0b1 <<3;
+}
 }
 void EXTI4_15_IRQHandler(){
+//pc4,5, owned by player 2
+if(EXTI->PR & 0b1<<4){
+    EXTI->PR = EXTI_PR_PR4;
+    player_2->input = 0b1<<4;
+    return;
+}
+else if (EXTI->PR & (0b1 << 5))
+{
+    EXTI->PR = EXTI_PR_PR5;
+    player_2->input = 0b1 <<5;
+    return;
+}
+//pc 6,7,8,9,10,11 owned by player 1
+
+if(EXTI->PR & 0b1<<6){
+    EXTI->PR = EXTI_PR_PR6;
+    player_1->input = 0b1;
+}
+else if (EXTI->PR & (0b1 << 7))
+{
+    EXTI->PR = EXTI_PR_PR7;
+    player_1->input = 0b1 <<1;
+}
+else if (EXTI->PR & (0b1 << 8))
+{
+    EXTI->PR = EXTI_PR_PR8;
+    player_1->input = 0b1 <<2;
+}
+else if (EXTI->PR & (0b1 << 9))
+{
+    EXTI->PR = EXTI_PR_PR9;
+    player_1->input = 0b1 <<3;
+}
+else if (EXTI->PR & (0b1 << 10))
+{
+    EXTI->PR = EXTI_PR_PR10;
+    player_1->input = 0b1 <<4;
+}
+else if (EXTI->PR & (0b1 << 11))
+{
+    EXTI->PR = EXTI_PR_PR11;
+    player_1->input = 0b1 <<5;
+}
 
 }
 //LCD Functions, used for both micros

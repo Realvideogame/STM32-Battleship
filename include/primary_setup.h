@@ -9,8 +9,12 @@ void setup_lcd(void); //done
 void setup_dma(void);
 void setup_interboard_com_primary(void);
 void start_new_round_LED(void);
+void setup_dma(void);
+void DMA1_Channel4_5_IRQHandler(void);
 void init_master(void);
 void init_slave(void);
+void TIM7_IRQHandler(void);
+void disable_turn_timer(void);
 
 void mapgen(void);
 void square_clear(u8, u8, player*);

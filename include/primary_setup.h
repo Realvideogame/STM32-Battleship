@@ -1,5 +1,7 @@
 
 extern int8_t turn; // global player turn based on main, 0 or 1
+player player_1;
+player player_2;
 // Function Protoypes
 
 // Setup-functions

@@ -15,8 +15,7 @@
 
 
 
-player player_1;
-player player_2;
+
 
 int8_t timer_set;
 int start_timer(int); // waits x secounds, should set a global variable to 1 and have a timer go for x sec, trigering an interupt after x sec which sets the global variable to 0

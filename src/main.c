@@ -9,9 +9,10 @@
 
 
 #include "stm32f0xx.h"
-#include "drawing_utility.c"
 #include <stdint.h>
 #include "primary_setup.h"
+#include "lcd.h"
+
 
 
 int main() {
@@ -21,12 +22,26 @@ int main() {
    * **************************************/
     // Setups function calls
     internal_clock();
+    setup_buttons();
+    setup_dma();
+    init_master();
+    LCD_Setup();
+    setup_turn_timer();
+    mapgen(); //display empty map to main
+
+    ship_size[0] = 5;
+    ship_size[1] = 4;
+    ship_size[2] = 3;
+    ship_size[3] = 2;
+    ship_size[4] = 2;
 
     // Setting up player strcutures
     player_1.x = 0;
     player_2.x = 0;
     player_1.y = 0;
     player_2.y = 0;
+    player_1.input = 0;
+    player_2.input = 0;
     for(int i = 0; i < FIELD_HEIGHT; i++) {
       for(int j = 0; j < FIELD_WIDTH; j++) {
         player_1.field[i][j] = 0;
@@ -36,16 +51,20 @@ int main() {
 
     // Battleship
     // phase 1 - placeing ships
-    // 120 sec total
+    // 300 sec total
     //tbd: find correct rotation
-    setup_buttons();
-    setup_dma();
-    init_master();
-    LCD_Setup();
-    LCD_direction(1);
-    mapgen(); //display empty map to main
     //secondary should also call mapgen
-    start_timer(120);
+    draw_cursor(1, 1);
+
+    start_timer(5);
+    while(timer_set) {}
+    square_clear(1,1,&player_1);
+
+    start_timer(5);
+    while(timer_set) {}
+    draw_cursor(1, 1);
+
+    start_timer(60);
     while(timer_set && ((player_1.ship_index < NUM_SHIPS) || (player_2.ship_index < NUM_SHIPS))) { 
 
       move_cursor(&player_1); // moves player 1's cursor as needed
@@ -56,8 +75,9 @@ int main() {
       place_ship(&player_2); // place or rotates player 2 ship
       player_1.input = 0;
     }
-  //pwm now needed
-  setup_led_array();
+    //pwm now needed
+    setup_led_array();
+    
     // phase 2 - turn by turn game
     // 60 sec a turn (FOR NOW)
     int winner = 0;
@@ -160,6 +180,7 @@ int attack_turn(player* attacker, player* defender) {
   int have_shot = 0; // whether or not the attacker has sucsessfully fired (>0), and whether it was a hit(1) or not(2)
   while(timer_set && !have_shot) {
     move_cursor(attacker); // registering movement from the attacker
+    
     if(attacker->input & 1) { // firing
       if(defender->field[attacker->x][attacker->y] >= 3) { // location already shot
         // Possibly indicate invalid hit with LEDs

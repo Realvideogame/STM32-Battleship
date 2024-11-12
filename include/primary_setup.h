@@ -2,6 +2,12 @@
 
 // Setup-functions
 //pcb sexton
+
+#ifndef PRIMARY_SETUP
+
+#define PRIMARY_SETUP
+
+#include <stdint.h>
 void setup_led_array(void); // cecilie
 void setup_buttons(void); //tushy
 void setup_turn_timer(void); // bug
@@ -16,22 +22,9 @@ void init_slave(void);
 void TIM7_IRQHandler(void);
 void disable_turn_timer(void);
 
-void mapgen(void);
-void square_clear(u8, u8, player*);
-
 #define FIELD_WIDTH 9
 #define FIELD_HEIGHT 12
 #define NUM_SHIPS 5
-
-void internal_clock();
-
-// battleship functions
-int move_cursor(player*);
-int place_ship(player* p);
-int attack_turn(player* attacker, player* defender);
-int check_player_status(player* p);
-
-int8_t ship_size[NUM_SHIPS] = {5, 4, 3, 2, 2};
 
 typedef struct _player{
   int8_t x; // Player's cursor x-cord
@@ -58,10 +51,27 @@ typedef struct _player{
 
 } player;
 
+void mapgen(void);
+void square_clear(uint8_t, uint8_t, player*);
+
+
+
+void internal_clock();
+
+// battleship functions
+int move_cursor(player*);
+int place_ship(player* p);
+int attack_turn(player* attacker, player* defender);
+int check_player_status(player* p);
+
+int8_t ship_size[NUM_SHIPS];
+
+
 player player_1;
 player player_2;
 int8_t game_status; // 0 - placing ship phase, 1 - player 1's turn, 2 - player 2's turn, 3 - player 1 won, 4 - player 2 won, 5 - Tied Game
 
 int8_t timer_set;
-int start_timer(int); // waits x secounds, should set a global variable to 1 and have a timer go for x sec, trigering an interupt after x sec which sets the global variable to 0
+void start_timer(int); // waits x secounds, should set a global variable to 1 and have a timer go for x sec, trigering an interupt after x sec which sets the global variable to 0
 
+#endif

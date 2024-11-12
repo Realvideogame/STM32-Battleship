@@ -1,5 +1,7 @@
-#include <primary_setup.h>
+#include "primary_setup.h"
 #include <stm32f091xc.h>
+#include "lcd.h"
+#include <stdint.h>
 volatile uint8_t dmaData; //variable to store data
 uint8_t txBuffer[128];
 
@@ -205,18 +207,34 @@ SET A BIT OR SOMETHING IDK
 GO BACK TO MAIN
 */
 
-void setup_turn_timer(void){
+void setup_turn_timer(){
     RCC -> APB1ENR |= RCC_APB1ENR_TIM7EN;
-    TIM7 -> PSC = (48000 - 1); //configures timer to go off every 1 min 
-    TIM7 -> ARR = (1250 - 1);
-    TIM7 -> DIER = TIM_DIER_UIE; //enables interrupt update
-    NVIC -> ISER[0] = 1<<TIM7_IRQn; //enables timer interrupt
+    TIM7 -> DIER |= TIM_DIER_UIE; //enables interrupt update
+    TIM7 -> CR1 &= ~TIM_CR1_CEN;
+    TIM7->CNT = 0;
+    NVIC -> ISER[0] |= 1<<TIM7_IRQn; //enables timer interrupt
+    TIM7 -> PSC = (48000 - 1); //configures timer to go off every 1 min
+
+
+    timer_set = 0;
+    TIM7 -> ARR = 1*1000 - 1;
+
+    timer_set = 1;
     TIM7 -> CR1 |= TIM_CR1_CEN;
+}
+
+void start_timer(int tim) {
+    TIM7 -> ARR = tim*1000 - 1;
+
+    timer_set = 1;
+    TIM7 -> CR1 |= TIM_CR1_CEN;
+
 }
 
 void TIM7_IRQHandler(void){
     TIM7 -> SR &= ~TIM_SR_UIF; //registers interrupt
-    setup_buttons();
+    timer_set = 0;
+    TIM7 -> CR1 &= ~TIM_CR1_CEN;
 }
 
 void disable_turn_timer(void){
@@ -352,4 +370,44 @@ void init_lcd_spi(){
     GPIOB->MODER |= (GPIO_MODER_MODER8_0 | GPIO_MODER_MODER11_0 | GPIO_MODER_MODER10_0);
     init_spi1_slow();
     sdcard_io_high_speed();
+}
+
+/*
+DRAWING UTILITIES
+*/
+
+void mapgen(void){
+    //240 by 320 pixel map
+    LCD_DrawFillRectangle(0,0,240,320,LIGHTBLUE);
+    //3 pixel wide line
+    //short axis
+    for(int i = 0; i < 240; i+=240/FIELD_WIDTH){ //integer division
+        LCD_DrawFillRectangle(i,0,i+3,320, DARKBLUE);
+    }
+    //long axis
+    for(int i = 0; i <= 320; i+=320/FIELD_HEIGHT){
+        LCD_DrawFillRectangle(0,i,240,i+3, DARKBLUE);
+    }
+}
+
+void square_clear(u8 x, u8 y, player* p){
+    u8 x_real = (x*240 / FIELD_WIDTH);
+    u8 y_real = (y*320 / FIELD_HEIGHT);
+    if(p->field[p->y][p->x] == 0){
+    //clear space
+    LCD_DrawFillRectangle(x_real+4,y_real+4,x_real+25,y_real+25,LIGHTBLUE);
+    } else if(p->field[p->y][p->x] == 1){
+        //circle for ship
+    }else if(p->field[p->y][p->x] == 2){
+        //blue X for miss
+    }else if(p->field[p->y][p->x] == 3){
+        //Orang Circle for dead ship bit
+    }
+}
+void draw_cursor(u8 x, u8 y){
+    //a + of 2 lines, should probably be drawn on top of the ship piece
+    u8 x_real = (x*240 / FIELD_WIDTH);
+    u8 y_real = (y*320 / FIELD_HEIGHT);
+    LCD_DrawFillRectangle(x_real+13,y_real,x_real+15,y_real+26,DARKBLUE);
+    LCD_DrawFillRectangle(x_real,y_real+13,x_real+26,y_real+15,DARKBLUE);
 }

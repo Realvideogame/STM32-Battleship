@@ -15,6 +15,10 @@
 
 
 int main() {
+
+    /**********************
+   Critical: We do not currently distinguish displays or have the means to send to display 2, which has no main yet
+   * **************************************/
     // Setups function calls
     internal_clock();
 
@@ -34,9 +38,13 @@ int main() {
     // phase 1 - placeing ships
     // 120 sec total
     //tbd: find correct rotation
+    setup_buttons();
+    setup_dma();
+    init_master();
     LCD_Setup();
     LCD_direction(1);
-    mapgen(); //display empty map
+    mapgen(); //display empty map to main
+    //secondary should also call mapgen
     start_timer(120);
     while(timer_set && ((player_1.ship_index < NUM_SHIPS) || (player_2.ship_index < NUM_SHIPS))) { 
 
@@ -48,7 +56,8 @@ int main() {
       place_ship(&player_2); // place or rotates player 2 ship
       player_1.input = 0;
     }
-
+  //pwm now needed
+  setup_led_array();
     // phase 2 - turn by turn game
     // 60 sec a turn (FOR NOW)
     int winner = 0;

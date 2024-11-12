@@ -42,6 +42,7 @@ int main() {
     // phase 1 - placeing ships
     // 120 sec total
     //tbd: find correct rotation
+    LCD_Setup();
     LCD_direction(1);
     mapgen(); //display empty map
     start_timer(120);

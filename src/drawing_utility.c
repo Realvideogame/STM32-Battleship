@@ -51,4 +51,4 @@ draw_cursor(u8 x, u8 y){
     LCD_DrawLine(x+13,y,x-13,y-26,DARKBLUE);
 }
 //hard function!
-void draw_ship(u8 rotation, )
+//void draw_ship(u8 rotation, )

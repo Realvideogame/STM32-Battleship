@@ -104,6 +104,50 @@ void start_new_round_LED(void) {
     TIM1 -> CR1 |= TIM_CR1_CEN; // Start or restart TIM1 counter
 }
 
+/* FUNCTION HEADER:
+SPI communication between microprocessors
+PB12 - PB14 are connected from master to PB12, PB13, and PB15 on slave
+Using SPI2 
+SHOULDNT IT BE PB15 TO PB15? MOSI TO MOSI
+*/
+void init_master(void) {
+    RCC -> APB1ENR |= RCC_APB1ENR_SPI2EN; //Enable clock for SPI2 channel
+
+    //Enable the ports used for SPI2 
+    RCC -> AHBENR |= RCC_AHBENR_GPIOBEN; //Enabling clock for port B
+    GPIOB -> MODER &= ~(GPIO_MODER_MODER12 | GPIO_MODER_MODER13 | GPIO_MODER_MODER15); //Clearing the bits
+    GPIOB -> MODER |= (GPIO_MODER_MODER12_1 | GPIO_MODER_MODER13_1 | GPIO_MODER_MODER15_1); //Configuring PB12 to be alternate output
+    //Select AF0 for PB12, 13, and 15 
+    GPIOB -> AFR[1] &= ~(GPIO_AFRH_AFSEL12 | GPIO_AFRH_AFSEL13 | GPIO_AFRH_AFSEL15); 
+
+    SPI2 -> CR1 &= ~SPI_CR1_SPE; //Disable the SPI2 Channel first
+    SPI2 -> CR1 |= (SPI_CR1_BR_0 | SPI_CR1_BR_1 | SPI_CR1_BR_2); //Set the baud rate as low as possible (Dividing by 256)
+
+    SPI2 -> CR2 = (SPI_CR2_DS_0 | SPI_CR2_DS_1 | SPI_CR2_DS_2 | SPI_CR2_DS_3); //Setting data size to 16 bits (NEED TO CHANGE?)
+    SPI2 -> CR1 |= SPI_CR1_MSTR; //Configure the SPI channel to be in "master configuration"
+    SPI2 -> CR2 |= (SPI_CR2_SSOE | SPI_CR2_NSSP); //Enable SS Output enable bit and enable NSSP
+    SPI2 -> CR2 |= SPI_CR2_TXDMAEN; //Set the TXDMAEN bit to enable DMA transfers on transmit buffer empty
+
+    SPI2 -> CR1 |= SPI_CR1_SPE; //Enable the SPI2 Channel
+}
+
+void init_slave(void) {
+    RCC -> APB1ENR |= RCC_APB1ENR_SPI2EN; //Enable clock for SPI2 channel
+
+    //Enable the ports used for SPI2 
+    RCC -> AHBENR |= RCC_AHBENR_GPIOBEN; //Enabling clock for port B
+    GPIOB -> MODER &= ~(GPIO_MODER_MODER12 | GPIO_MODER_MODER13 | GPIO_MODER_MODER15); //Clearing the bits
+    GPIOB -> MODER |= (GPIO_MODER_MODER12_1 | GPIO_MODER_MODER13_1 | GPIO_MODER_MODER15_1); //Configuring PB12 to be alternate output
+    //Select AF0 for PB12, 13, and 15 
+    GPIOB -> AFR[1] &= ~(GPIO_AFRH_AFSEL12 | GPIO_AFRH_AFSEL13 | GPIO_AFRH_AFSEL15); 
+
+    SPI2 -> CR1 &= ~SPI_CR1_SPE; //Disable the SPI2 Channel first
+    SPI2 -> CR2 = (SPI_CR2_DS_0 | SPI_CR2_DS_1 | SPI_CR2_DS_2 | SPI_CR2_DS_3); //Setting data size to 16 bits (NEED TO CHANGE?)
+    SPI2 -> CR1 &= ~SPI_CR1_MSTR; //Congigure as slave
+    SPI2->CR2 |= SPI_CR2_RXDMAEN;
+    SPI2->CR1 |= SPI_CR1_SPE; //Enable SPI2
+}
+
 
 /* FUNCTION HEADER:
 setup gpioc for exti interrupts on pushbuttons

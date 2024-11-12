@@ -11,6 +11,8 @@ void setup_lcd(void); //done
 void setup_dma(void);
 void setup_interboard_com_primary(void);
 void start_new_round_LED(void);
+void init_master(void);
+void init_slave(void);
 
 void mapgen(void);
 void square_clear(u8, u8, player*);

@@ -105,6 +105,32 @@ void start_new_round_LED(void) {
     TIM1 -> CR1 |= TIM_CR1_CEN; // Start or restart TIM1 counter
 }
 
+
+void setup_dma(void) {
+    RCC -> AHBENR |= RCC_AHBENR_DMA1EN;
+    DMA1_Channel5 -> CPAR = (uint32_t)(& (SPI2 -> DR));
+    DMA1_Channel5 -> CMAR = (uint32_t) txBuffer;
+    DMA1_Channel5 -> CNDTR = sizeof(txBuffer);
+    DMA1_Channel5 -> CCR = DMA_CCR_MINC | DMA_CCR_DIR | DMA_CCR_TCIE | DMA_CCR_EN;
+
+    DMA1_Channel4 -> CPAR = (uint32_t)(& (SPI2 -> DR));
+    DMA1_Channel4 -> CMAR = (uint32_t) (& dmaData);
+    DMA1_Channel4 -> CNDTR = 128; //size of data, can be adjusted as necessary
+    DMA1_Channel4 -> CCR = DMA_CCR_MINC | DMA_CCR_TCIE | DMA_CCR_EN;           
+    SPI2->CR1 |= SPI_CR1_SPE; //Enable SPI2
+
+    NVIC->ISER[0] |= (1 << DMA1_Channel4_5_IRQn);
+}
+
+void DMA1_Channel4_5_IRQHandler(void) {
+    if (DMA1->ISR & DMA_ISR_TCIF5) {
+        DMA1->IFCR |= DMA_IFCR_CTCIF5;
+    }
+    if (DMA1->ISR & DMA_ISR_TCIF4) {
+        DMA1->IFCR |= DMA_IFCR_CTCIF4;
+    }
+}
+
 /* FUNCTION HEADER:
 SPI communication between microprocessors
 PB12 - PB14 are connected from master to PB12, PB13, and PB15 on slave
@@ -128,12 +154,6 @@ void init_master(void) {
     SPI2 -> CR1 |= SPI_CR1_MSTR; //Configure the SPI channel to be in "master configuration"
     SPI2 -> CR2 |= (SPI_CR2_SSOE | SPI_CR2_NSSP); //Enable SS Output enable bit and enable NSSP
     SPI2 -> CR2 |= SPI_CR2_TXDMAEN; //Set the TXDMAEN bit to enable DMA transfers on transmit buffer empty
-
-    DMA1_Channel5->CPAR = (uint32_t)(& (SPI2 -> DR));
-    DMA1_Channel5->CMAR = (uint32_t)txBuffer; 
-    DMA1_Channel5->CNDTR = 128; //size of data, can be adjusted as needed
-    DMA1_Channel5->CCR = DMA_CCR_MINC | DMA_CCR_DIR | DMA_CCR_TCIE | DMA_CCR_EN; 
-
     SPI2 -> CR1 |= SPI_CR1_SPE; //Enable the SPI2 Channel
 }
 
@@ -150,13 +170,7 @@ void init_slave(void) {
     SPI2 -> CR1 &= ~SPI_CR1_SPE; //Disable the SPI2 Channel first
     SPI2 -> CR2 = (SPI_CR2_DS_0 | SPI_CR2_DS_1 | SPI_CR2_DS_2 | SPI_CR2_DS_3); //Setting data size to 16 bits (NEED TO CHANGE?)
     SPI2 -> CR1 &= ~SPI_CR1_MSTR; //Congigure as slave
-    SPI2->CR2 |= SPI_CR2_RXDMAEN;
-
-    //dma configuration for spi2
-    DMA1_Channel4 -> CPAR = (uint32_t)(& (SPI2 -> DR));
-    DMA1_Channel4 -> CMAR = (uint32_t) (& dmaData);
-    DMA1_Channel4 -> CNDTR = 128;
-    DMA1_Channel4 -> CCR = DMA_CCR_MINC | DMA_CCR_TCIE | DMA_CCR_EN;           
+    SPI2->CR2 |= SPI_CR2_RXDMAEN;          
     SPI2->CR1 |= SPI_CR1_SPE; //Enable SPI2
 }
 

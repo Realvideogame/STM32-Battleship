@@ -10,15 +10,14 @@ no arguments
 */
 void swap_player(void){
     //assume only called to switch the turn
-    if(turn){
+    if(game_status == 1){
         //mask 6, unmask other 6
-        //i will wire this to PC0-5
-        turn = 0;
+        //player 2 now gets to move
         EXTI->IMR = 0b111111;
     }
-    else{
+    else if (game_status == 2){
         //unmask 6, mask other 6
-        turn = 1;
+        //player 1 can now move
         EXTI->IMR = 0b111111000000;
     }
 }
@@ -236,69 +235,69 @@ void EXTI0_1IRQHANDLER(){
 //owned by player 2
 if(EXTI->PR & 0b1){
     EXTI->PR = EXTI_PR_PR0;
-    player_2->input = 0b1;
+    player_2.input = 0b1;
 }
 else if (EXTI->PR & (0b1 << 1))
 {
     EXTI->PR = EXTI_PR_PR1;
-    player_2->input = 0b1 <<1;
+    player_2.input = 0b1 <<1;
 }
 }
 void EXTI2_3_IRQHandler(){
 //pc2,3 owned by player 2
 if(EXTI->PR & 0b1<<2){
     EXTI->PR = EXTI_PR_PR2;
-    player_2->input = 0b1<<2;
+    player_2.input = 0b1<<2;
 }
 else if (EXTI->PR & (0b1 << 3))
 {
     EXTI->PR = EXTI_PR_PR3;
-    player_2->input = 0b1 <<3;
+    player_2.input = 0b1 <<3;
 }
 }
 void EXTI4_15_IRQHandler(){
 //pc4,5, owned by player 2
 if(EXTI->PR & 0b1<<4){
     EXTI->PR = EXTI_PR_PR4;
-    player_2->input = 0b1<<4;
+    player_2.input = 0b1<<4;
     return;
 }
 else if (EXTI->PR & (0b1 << 5))
 {
     EXTI->PR = EXTI_PR_PR5;
-    player_2->input = 0b1 <<5;
+    player_2.input = 0b1 <<5;
     return;
 }
 //pc 6,7,8,9,10,11 owned by player 1
 
 if(EXTI->PR & 0b1<<6){
     EXTI->PR = EXTI_PR_PR6;
-    player_1->input = 0b1;
+    player_1.input = 0b1;
 }
 else if (EXTI->PR & (0b1 << 7))
 {
     EXTI->PR = EXTI_PR_PR7;
-    player_1->input = 0b1 <<1;
+    player_1.input = 0b1 <<1;
 }
 else if (EXTI->PR & (0b1 << 8))
 {
     EXTI->PR = EXTI_PR_PR8;
-    player_1->input = 0b1 <<2;
+    player_1.input = 0b1 <<2;
 }
 else if (EXTI->PR & (0b1 << 9))
 {
     EXTI->PR = EXTI_PR_PR9;
-    player_1->input = 0b1 <<3;
+    player_1.input = 0b1 <<3;
 }
 else if (EXTI->PR & (0b1 << 10))
 {
     EXTI->PR = EXTI_PR_PR10;
-    player_1->input = 0b1 <<4;
+    player_1.input = 0b1 <<4;
 }
 else if (EXTI->PR & (0b1 << 11))
 {
     EXTI->PR = EXTI_PR_PR11;
-    player_1->input = 0b1 <<5;
+    player_1.input = 0b1 <<5;
 }
 
 }

@@ -14,17 +14,9 @@
 #include "primary_setup.h"
 
 
-
-player player_1;
-player player_2;
-
-int8_t timer_set;
-int start_timer(int); // waits x secounds, should set a global variable to 1 and have a timer go for x sec, trigering an interupt after x sec which sets the global variable to 0
-
 int main() {
     // Setups function calls
     internal_clock();
-
 
     // Setting up player strcutures
     player_1.x = 0;
@@ -58,6 +50,30 @@ int main() {
     }
 
     // phase 2 - turn by turn game
+    // 60 sec a turn (FOR NOW)
+    int winner = 0;
+    while (game_status < 3) {
+      while(game_status == 1 && attack_turn(&player_1, &player_2) == 1) { // Player 1 Turn
+        if(check_player_status(&player_2)) {
+          // player 2 has no remaining ships
+          winner += 1;
+        }
+      }
+    
+      game_status += 1; // setting to next turn
+      while((game_status == 2 || game_status == 3) && attack_turn(&player_2, &player_1) == 1) {
+        if(check_player_status(&player_1)) {
+          // player 1 has no remaining ships
+          winner += 2;
+        }
+      }
+
+      if(winner) {
+        game_status = winner + 2; // set game status with the winner
+      }
+      else game_status = 1; // reset to player one's turn
+    }
+
     // phase 3 - post game stats
     
 }
@@ -128,4 +144,34 @@ int place_ship(player* p) {
     p->rotation=0;
   }
   return 0;
+}
+
+int attack_turn(player* attacker, player* defender) {
+  start_timer(60); // 60 Second Turn Timer
+  int have_shot = 0; // whether or not the attacker has sucsessfully fired (>0), and whether it was a hit(1) or not(2)
+  while(timer_set && !have_shot) {
+    move_cursor(attacker); // registering movement from the attacker
+    if(attacker->input & 1) { // firing
+      if(defender->field[attacker->x][attacker->y] >= 3) { // location already shot
+        // Possibly indicate invalid hit with LEDs
+      }
+      else{
+        if (defender->field[attacker->x][attacker->y] == 0) have_shot = 1; // hit
+        else have_shot = 2; // miss
+        defender->field[attacker->x][attacker->y] += 2; // Turns empty to missed and ship to hit
+      }
+    }
+  }
+  return have_shot;
+}
+
+int check_player_status(player* p) {
+  for (int i = 0; i < FIELD_HEIGHT; i++) {
+    for (int j = 0; j < FIELD_WIDTH; j++) {
+      if(p->field[i][j] == 1) {
+        return 0; // player still has ship components
+      }
+    }
+  }
+  return 1; // player has no ships remaining
 }

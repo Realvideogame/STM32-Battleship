@@ -1,5 +1,3 @@
-
-extern int8_t turn; // global player turn based on main, 0 or 1
 // Function Protoypes
 
 // Setup-functions
@@ -23,10 +21,11 @@ void square_clear(u8, u8, player*);
 
 void internal_clock();
 
-// battleship function
-// TODO: move to header
+// battleship functions
 int move_cursor(player*);
 int place_ship(player* p);
+int attack_turn(player* attacker, player* defender);
+int check_player_status(player* p);
 
 int8_t ship_size[NUM_SHIPS] = {5, 4, 3, 2, 2};
 
@@ -54,3 +53,11 @@ typedef struct _player{
   
 
 } player;
+
+player player_1;
+player player_2;
+int8_t game_status; // 0 - placing ship phase, 1 - player 1's turn, 2 - player 2's turn, 3 - player 1 won, 4 - player 2 won, 5 - Tied Game
+
+int8_t timer_set;
+int start_timer(int); // waits x secounds, should set a global variable to 1 and have a timer go for x sec, trigering an interupt after x sec which sets the global variable to 0
+

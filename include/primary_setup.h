@@ -21,6 +21,7 @@ void init_master(void);
 void init_slave(void);
 void TIM7_IRQHandler(void);
 void disable_turn_timer(void);
+void startPWM(void);
 
 #define FIELD_WIDTH 9
 #define FIELD_HEIGHT 12

@@ -41,8 +41,8 @@ void setup_led_array(void) {
 
     TIM1 -> BDTR |= TIM_BDTR_MOE; //Enable the MOE bit in the TIM1 BDTR register
 
-    TIM1 -> PSC = 4800 - 1; //Divide the clock by 4800 -> 10 kHz
-    TIM1 -> ARR = 10000 - 1; //Setting the ARR to create 1 Hz !MIGHT NEED TO CHANGE!
+    TIM1 -> PSC = 1 - 1; //Divide the clock by 4800 -> 10 kHz
+    TIM1 -> ARR = 2400 - 1; //Setting the ARR to create 1 Hz !MIGHT NEED TO CHANGE!
 
     TIM1 -> CCMR1 &= ~(TIM_CCMR1_OC1M | TIM_CCMR1_OC2M);
     TIM1 -> CCMR2 &= ~(TIM_CCMR2_OC3M | TIM_CCMR2_OC4M);
@@ -51,64 +51,63 @@ void setup_led_array(void) {
     TIM1 -> CCMR2 |= (TIM_CCMR2_OC3M_2 | TIM_CCMR2_OC3M_1); //PWM Mode 1 for channel 3
     TIM1 -> CCMR2 |= (TIM_CCMR2_OC4M_2 | TIM_CCMR2_OC4M_1);
 
-    TIM1->DIER |= TIM_DIER_UIE; // Enable update interrupt
+    // TIM1->DIER |= TIM_DIER_UIE; // Enable update interrupt
 
-    TIM1 -> CCR1 = 9999; //Turn off all LEDS
-    TIM1 -> CCR2 = 9999;
-    TIM1 -> CCR3 = 9999; 
+    TIM1 -> CCR1 = 2399; //Turn off all LEDS
+    TIM1 -> CCR2 = 2399;
+    TIM1 -> CCR3 = 2399; 
 
     TIM1 -> CCER |= (TIM_CCER_CC1E | TIM_CCER_CC2E | TIM_CCER_CC3E | TIM_CCER_CC4E); //Enable the four channel outputs
-    TIM1 -> CR1 |= TIM_CR1_CEN; //Enable counter
-
     NVIC -> ISER[0] |= 1 << TIM1_BRK_UP_TRG_COM_IRQn; //Enable the interrupt for Timer 1
 
-    TIM1 -> CCR3 = 0; //Initializing the green LED
+    TIM1 -> CR1 |= TIM_CR1_CEN; //Enable TIM1
 }
 
 /*
   TIM1 -> CCR1 : RED
   TIM1 -> CCR2: BLUE 
   TIM1 -> CCR3: GREEN
-*/
 
+  0 -> ON
+  2400 -> OFF
+*/
 #define WARNING_TIME 5
 int32_t time_remaining = 60;
 int32_t toggle = 1;
 
-void TIM1_BRK_UP_TRG_COM_IRQHandler() {
-    TIM1->SR &= ~TIM_SR_UIF; // Acknowledge interrupt
+void startPWM() {
+        
+    for(float x=2400; x>1; x /= 1.183) {
+        TIM1 -> CCR3 = 2400 - x;
+        nano_wait(10000000);
+    }
 
-    if (time_remaining >= 0) {
-
-        if (time_remaining > WARNING_TIME) { //When time > 5 seconds
-            TIM1 -> CCR3 += (9999/55); // 10,000/60
+    TIM1 -> CCR3 = 2399;
+    int ccr1Val;
+    
+    for (int y = 0; y < 5; y++) {
+        if (toggle) {
+            ccr1Val = 0;
+        } else {
+            ccr1Val = 2399;
         }
-        else if (time_remaining <= WARNING_TIME) { //Last 5 seconds
-            TIM1 -> CCR3 = 9999;
-
-            TIM1 -> CCR1 = toggle ? 0 : 9999;
-            toggle = !toggle;
-        } 
-
-        time_remaining--;
+        TIM1 -> CCR1 = ccr1Val;
+        toggle = !toggle;
+        nano_wait(1000000000);
     }
-    else { //Round is over
-        TIM1 -> CCR1 = 9999; //Turn off all LEDS
-        TIM1 -> CCR2 = 9999;
-        TIM1 -> CCR3 = 9999; 
-        toggle = 1;
+    
+    TIM1 -> CCR1 = 2399; //Turn off all LEDS
+    TIM1 -> CCR2 = 2399;
+    TIM1 -> CCR3 = 2399; 
 
-        //FIND A WAY TO TURN OFF THE GREEN LIGHT ONCE THE GAME IS OVER?
-        TIM1->CR1 &= ~TIM_CR1_CEN; // Stop TIM1
-    }
+    // TIM1 -> CR1 &= ~TIM_CR1_CEN; // Stop TIM1
 }
-
 
 void start_new_round_LED(void) {
     TIM1 -> CNT = 0; // Reset counter
     time_remaining = 60; // Reset for the next round if needed
-    TIM1 -> CCR1 = 9999; //Turn of red LED
-    TIM1 -> CCR2 = 0; //Turn on the green LED
+    TIM1 -> CCR1 = 2399; //Turn of red LED
+    TIM1 -> CCR3 = 0; //Turn on the green LED
     TIM1 -> CR1 |= TIM_CR1_CEN; // Start or restart TIM1 counter
 }
 

@@ -76,13 +76,15 @@ int32_t time_remaining = 60;
 int32_t toggle = 1;
 
 void startPWM() {
-        
+    TIM1 -> CNT = 0;
+
     for(float x=2400; x>1; x /= 1.183) {
         TIM1 -> CCR3 = 2400 - x;
-        nano_wait(10000000);
+        nano_wait(100000000);
     }
 
     TIM1 -> CCR3 = 2399;
+    toggle = 1;
     int ccr1Val;
     
     for (int y = 0; y < 5; y++) {
@@ -102,15 +104,6 @@ void startPWM() {
 
     // TIM1 -> CR1 &= ~TIM_CR1_CEN; // Stop TIM1
 }
-
-void start_new_round_LED(void) {
-    TIM1 -> CNT = 0; // Reset counter
-    time_remaining = 60; // Reset for the next round if needed
-    TIM1 -> CCR1 = 2399; //Turn of red LED
-    TIM1 -> CCR3 = 0; //Turn on the green LED
-    TIM1 -> CR1 |= TIM_CR1_CEN; // Start or restart TIM1 counter
-}
-
 
 void setup_dma(void) {
     RCC -> AHBENR |= RCC_AHBENR_DMA1EN;

@@ -61,6 +61,14 @@ void setup_led_array(void) {
     NVIC -> ISER[0] |= 1 << TIM1_BRK_UP_TRG_COM_IRQn; //Enable the interrupt for Timer 1
 
     TIM1 -> CR1 |= TIM_CR1_CEN; //Enable TIM1
+
+    //SET UP TIM2
+    RCC -> APB1ENR |= RCC_APB1ENR_TIM2EN;
+    TIM2 -> PSC = 480 - 1; // 1 Mhz
+    TIM2 -> ARR = 100000 - 1; // 1 Hz
+    TIM2 -> DIER = TIM_DIER_UIE; 
+    NVIC -> ISER[0] |= 1 << TIM2_IRQn; 
+    TIM2 -> CR1 |= TIM_CR1_CEN; //Enable Timer 2
 }
 
 /*
@@ -74,36 +82,32 @@ void setup_led_array(void) {
 #define WARNING_TIME 5
 int32_t time_remaining = 60;
 int32_t toggle = 1;
+float x = 2400;
 
-void startPWM() {
-    TIM1 -> CNT = 0;
+void TIM2_IRQHandler() {
+    TIM2 -> SR &= ~TIM_SR_UIF; //Acknowledging interrupt
 
-    for(float x=2400; x>1; x /= 1.183) {
-        TIM1 -> CCR3 = 2400 - x;
-        nano_wait(100000000);
-    }
-
-    TIM1 -> CCR3 = 2399;
-    toggle = 1;
-    int ccr1Val;
-    
-    for (int y = 0; y < 5; y++) {
-        if (toggle) {
-            ccr1Val = 0;
-        } else {
-            ccr1Val = 2399;
+    if (time_remaining >= 0) {
+        if (time_remaining <= 5){
+            TIM1 -> CCR3 = 2399; //Turn of green
+            TIM1 -> CCR1 = toggle ? 0 : 2399;
+            toggle = !toggle;
+        } 
+        else if (x > 1) {
+            x /= 1.183;
+            TIM1 -> CCR3 = 2400 - x;
         }
-        TIM1 -> CCR1 = ccr1Val;
-        toggle = !toggle;
-        nano_wait(1000000000);
-    }
-    
-    TIM1 -> CCR1 = 2399; //Turn off all LEDS
-    TIM1 -> CCR2 = 2399;
-    TIM1 -> CCR3 = 2399; 
+        time_remaining--;
+    } else {
+        TIM1 -> CCR1 = 2399;
+        TIM1 -> CCR3 = 2399;
+        toggle = 1;
 
-    // TIM1 -> CR1 &= ~TIM_CR1_CEN; // Stop TIM1
+        TIM1->CR1 &= ~TIM_CR1_CEN; // Stop TIM1
+        TIM2 -> CR1 &= ~TIM_CR1_CEN; // Stop TIM2
+    }
 }
+
 
 void setup_dma(void) {
     RCC -> AHBENR |= RCC_AHBENR_DMA1EN;

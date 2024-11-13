@@ -49,23 +49,26 @@ void setup_led_array(void) {
     TIM1 -> CCMR1 |= (TIM_CCMR1_OC1M_2 | TIM_CCMR1_OC1M_1); //PWM Mode 1 for channel 1
     TIM1 -> CCMR1 |= (TIM_CCMR1_OC2M_2 | TIM_CCMR1_OC2M_1); //PWM Mode 1 for channel 2
     TIM1 -> CCMR2 |= (TIM_CCMR2_OC3M_2 | TIM_CCMR2_OC3M_1); //PWM Mode 1 for channel 3
-    TIM1 -> CCMR2 |= (TIM_CCMR2_OC4M_2 | TIM_CCMR2_OC4M_1); //PWM Mode 1 for channel 4
+    TIM1 -> CCMR2 |= (TIM_CCMR2_OC4M_2 | TIM_CCMR2_OC4M_1);
 
     TIM1->DIER |= TIM_DIER_UIE; // Enable update interrupt
 
+    TIM1 -> CCR1 = 9999; //Turn off all LEDS
+    TIM1 -> CCR2 = 9999;
+    TIM1 -> CCR3 = 9999; 
+
     TIM1 -> CCER |= (TIM_CCER_CC1E | TIM_CCER_CC2E | TIM_CCER_CC3E | TIM_CCER_CC4E); //Enable the four channel outputs
     TIM1 -> CR1 |= TIM_CR1_CEN; //Enable counter
-    TIM1 -> CCR3 = 0; //Turn off the blue LED
 
     NVIC -> ISER[0] |= 1 << TIM1_BRK_UP_TRG_COM_IRQn; //Enable the interrupt for Timer 1
 
-    TIM1 -> CCR2 = 10000; //Initializing the green LED
+    TIM1 -> CCR3 = 0; //Initializing the green LED
 }
 
 /*
   TIM1 -> CCR1 : RED
-  TIM1 -> CCR2: GREEN
-  TIM1 -> CCR3: BLUE
+  TIM1 -> CCR2: BLUE 
+  TIM1 -> CCR3: GREEN
 */
 
 #define WARNING_TIME 5
@@ -76,21 +79,23 @@ void TIM1_BRK_UP_TRG_COM_IRQHandler() {
     TIM1->SR &= ~TIM_SR_UIF; // Acknowledge interrupt
 
     if (time_remaining >= 0) {
-        time_remaining--;
 
         if (time_remaining > WARNING_TIME) { //When time > 5 seconds
-            TIM1 -> CCR1 = 0; //Turn off red
-            TIM1 -> CCR2 = TIM1 -> CCR2 - 166; // 10,000/60
+            TIM1 -> CCR3 += (9999/55); // 10,000/60
         }
         else if (time_remaining <= WARNING_TIME) { //Last 5 seconds
-            TIM1 -> CCR2 = 0; //Turn of green
-            TIM1 -> CCR1 = toggle ? 10000 : 0;
+            TIM1 -> CCR3 = 9999;
+
+            TIM1 -> CCR1 = toggle ? 0 : 9999;
             toggle = !toggle;
         } 
+
+        time_remaining--;
     }
     else { //Round is over
-        TIM1 -> CCR1 = 0;
-        TIM1 -> CCR2 = 0;
+        TIM1 -> CCR1 = 9999; //Turn off all LEDS
+        TIM1 -> CCR2 = 9999;
+        TIM1 -> CCR3 = 9999; 
         toggle = 1;
 
         //FIND A WAY TO TURN OFF THE GREEN LIGHT ONCE THE GAME IS OVER?
@@ -98,11 +103,12 @@ void TIM1_BRK_UP_TRG_COM_IRQHandler() {
     }
 }
 
+
 void start_new_round_LED(void) {
     TIM1 -> CNT = 0; // Reset counter
     time_remaining = 60; // Reset for the next round if needed
-    TIM1 -> CCR1 = 0; //Turn of red LED
-    TIM1 -> CCR2 = 10000; //Turn on the green LED
+    TIM1 -> CCR1 = 9999; //Turn of red LED
+    TIM1 -> CCR2 = 0; //Turn on the green LED
     TIM1 -> CR1 |= TIM_CR1_CEN; // Start or restart TIM1 counter
 }
 

@@ -9,7 +9,6 @@
 
 #include <stdint.h>
 void setup_led_array(void); // cecilie
-void setup_buttons(void); //tushy
 void setup_turn_timer(void); // bug
 void setup_lcd(void); //done
 void setup_dma(void);
@@ -52,7 +51,7 @@ typedef struct _player{
 } player;
 
 void mapgen(void);
-void square_clear(uint8_t, uint8_t, player*);
+void square_set(uint8_t, uint8_t, player*);
 
 
 
@@ -73,5 +72,16 @@ int8_t game_status; // 0 - placing ship phase, 1 - player 1's turn, 2 - player 2
 
 int8_t timer_set;
 void start_timer(int); // waits x secounds, should set a global variable to 1 and have a timer go for x sec, trigering an interupt after x sec which sets the global variable to 0
+
+uint8_t col; // the column being scanned
+
+void drive_column(int);   // energize one of the column outputs
+int  read_rows();         // read the four row inputs
+void update_history(int col, int rows); // record the buttons of the driven column
+char get_key_event(void); // wait for a button event (press or release)
+char get_keypress(void);  // wait for only a button press event.
+float getfloat(void);     // read a floating-point number from keypad
+void setup_tim14(void);
+void setup_tim15(void);
 
 #endif

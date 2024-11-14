@@ -22,12 +22,14 @@ int main() {
    * **************************************/
     // Setups function calls
     internal_clock();
-    setup_buttons();
     setup_dma();
     init_master();
     LCD_Setup();
     setup_turn_timer();
     mapgen(); //display empty map to main
+    enable_gpioC();
+    setup_tim14();
+    setup_tim15();
 
     ship_size[0] = 5;
     ship_size[1] = 4;

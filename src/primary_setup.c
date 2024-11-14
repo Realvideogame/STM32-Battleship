@@ -10,19 +10,6 @@ swap_player: switch buttons and turn value
 called by turn timer
 no arguments
 */
-void swap_player(void){
-    //assume only called to switch the turn
-    if(game_status == 1){
-        //mask 6, unmask other 6
-        //player 2 now gets to move
-        EXTI->IMR = 0b111111;
-    }
-    else if (game_status == 2){
-        //unmask 6, mask other 6
-        //player 1 can now move
-        EXTI->IMR = 0b111111000000;
-    }
-}
 
 /* FUNCTION HEADER:
 PWM: LEDs will fade from bright green to nothing. Until it reaches 5 seconds, 
@@ -181,27 +168,8 @@ void init_slave(void) {
 /* FUNCTION HEADER:
 setup gpioc for exti interrupts on pushbuttons
 */
-void setup_buttons(void){
-    RCC->AHBENR |= RCC_AHBENR_GPIOCEN;
-    //requires gpio moder and gpio PUPDR
-    //default state is ok for moder
-    //then use pulldown
-    GPIOC->PUPDR |= 0xAAAAAA;
-    
 
-    // pins 0 to 11 exti enable
-    SYSCFG->EXTICR[0] |= 0x2222;
-    SYSCFG->EXTICR[1] |= 0x2222;
-    SYSCFG->EXTICR[2] |= 0x2222;
-    // use rising trigger and unmask
-    EXTI->RTSR |= 0b111111111111;
-    EXTI->IMR |= 0b111111111111;
 
-    //enable interrupts
-    NVIC->ISER[0] |= 1 << EXTI0_1_IRQn;
-    NVIC->ISER[0] |= 1 << EXTI2_3_IRQn;
-    NVIC->ISER[0] |= 1 << EXTI4_15_IRQn;
-}
 /*
 FUNCTION HEADER:
 READ IN A BUTTON, FIND OUT WHICH BUTTON
@@ -250,77 +218,8 @@ Must do the following:
 Acknowledge interrupt, isolate pressed button, indicate action to main
 Possible dma?
 */
-void EXTI0_1IRQHANDLER(){
-//pc0,pc1
-//owned by player 2
-if(EXTI->PR & 0b1){
-    EXTI->PR = EXTI_PR_PR0;
-    player_2.input = 0b1;
-}
-else if (EXTI->PR & (0b1 << 1))
-{
-    EXTI->PR = EXTI_PR_PR1;
-    player_2.input = 0b1 <<1;
-}
-}
-void EXTI2_3_IRQHandler(){
-//pc2,3 owned by player 2
-if(EXTI->PR & 0b1<<2){
-    EXTI->PR = EXTI_PR_PR2;
-    player_2.input = 0b1<<2;
-}
-else if (EXTI->PR & (0b1 << 3))
-{
-    EXTI->PR = EXTI_PR_PR3;
-    player_2.input = 0b1 <<3;
-}
-}
-void EXTI4_15_IRQHandler(){
-//pc4,5, owned by player 2
-if(EXTI->PR & 0b1<<4){
-    EXTI->PR = EXTI_PR_PR4;
-    player_2.input = 0b1<<4;
-    return;
-}
-else if (EXTI->PR & (0b1 << 5))
-{
-    EXTI->PR = EXTI_PR_PR5;
-    player_2.input = 0b1 <<5;
-    return;
-}
-//pc 6,7,8,9,10,11 owned by player 1
 
-if(EXTI->PR & 0b1<<6){
-    EXTI->PR = EXTI_PR_PR6;
-    player_1.input = 0b1;
-}
-else if (EXTI->PR & (0b1 << 7))
-{
-    EXTI->PR = EXTI_PR_PR7;
-    player_1.input = 0b1 <<1;
-}
-else if (EXTI->PR & (0b1 << 8))
-{
-    EXTI->PR = EXTI_PR_PR8;
-    player_1.input = 0b1 <<2;
-}
-else if (EXTI->PR & (0b1 << 9))
-{
-    EXTI->PR = EXTI_PR_PR9;
-    player_1.input = 0b1 <<3;
-}
-else if (EXTI->PR & (0b1 << 10))
-{
-    EXTI->PR = EXTI_PR_PR10;
-    player_1.input = 0b1 <<4;
-}
-else if (EXTI->PR & (0b1 << 11))
-{
-    EXTI->PR = EXTI_PR_PR11;
-    player_1.input = 0b1 <<5;
-}
 
-}
 //LCD Functions, used for both micros
 void init_spi1_slow(){
     RCC->APB2ENR |= RCC_APB2ENR_SPI1EN;
@@ -392,18 +291,22 @@ void mapgen(void){
     }
 }
 
-void square_clear(u8 x, u8 y, player* p){
+void square_set(u8 x, u8 y, player* p){
     u8 x_real = (x*240 / FIELD_WIDTH);
     u8 y_real = (y*320 / FIELD_HEIGHT);
     if(p->field[p->y][p->x] == 0){
     //clear space
-    LCD_DrawFillRectangle(x_real+4,y_real+4,x_real+25,y_real+25,LIGHTBLUE);
+        LCD_DrawFillRectangle(x_real+4,y_real+4,x_real+25,y_real+25,LIGHTBLUE);
     } else if(p->field[p->y][p->x] == 1){
         //circle for ship
+        LCD_Circle(x_real+12,y_real+12,8,1,GRAY);
     }else if(p->field[p->y][p->x] == 2){
         //blue X for miss
+        LCD_DrawLine(x_real,y_real,x_real+26,y_real+26,DARKBLUE);
+        LCD_DrawLine(x_real+26,y_real,x_real,y_real+26,DARKBLUE);
     }else if(p->field[p->y][p->x] == 3){
-        //Orang Circle for dead ship bit
+        LCD_Circle(x_real+12,y_real+12,8,1,LGRAYBLUE);
+        //different Circle for dead ship bit
     }
 }
 void draw_cursor(u8 x, u8 y){
@@ -412,4 +315,179 @@ void draw_cursor(u8 x, u8 y){
     u8 y_real = (y*320 / FIELD_HEIGHT);
     LCD_DrawFillRectangle(x_real+13,y_real,x_real+15,y_real+26,DARKBLUE);
     LCD_DrawFillRectangle(x_real,y_real+13,x_real+26,y_real+15,DARKBLUE);
+}
+
+//keypad utility from labs
+
+uint8_t hist[16];
+char queue[2];  // A two-entry queue of button press/release events.
+int qin;        // Which queue entry is next for input
+int qout;       // Which queue entry is next for output
+
+const char keymap[] = "DCBA#9630852*741";
+
+void push_queue(int n) {
+    queue[qin] = n;
+    qin ^= 1;
+}
+
+char pop_queue() {
+    char tmp = queue[qout];
+    queue[qout] = 0;
+    qout ^= 1;
+    return tmp;
+}
+
+void update_history(int c, int rows)
+{
+    // We used to make students do this in assembly language.
+    for(int i = 0; i < 4; i++) {
+        hist[4*c+i] = (hist[4*c+i]<<1) + ((rows>>i)&1);
+        if (hist[4*c+i] == 0x01)
+            push_queue(0x80 | keymap[4*c+i]);
+        if (hist[4*c+i] == 0xfe)
+            push_queue(keymap[4*c+i]);
+    }
+}
+
+void drive_column(int c)
+{
+    GPIOC->BSRR = (0xf00000 | ~(1 << (c + 4))) | (0xf00000 | ~(1 << (c + 12)));
+}
+
+int read_rows()
+{
+    return (~GPIOC->IDR) & 0xf0f;
+}
+
+char get_key_event(void) {
+    for(;;) {
+        asm volatile ("wfi");   // wait for an interrupt
+        if (queue[qout] != 0)
+            break;
+    }
+    return pop_queue();
+}
+
+char get_keypress() {
+    char event;
+    for(;;) {
+        // Wait for every button event...
+        event = get_key_event();
+        // ...but ignore if it's a release.
+        if (event & 0x80)
+            break;
+    }
+    return event & 0x7f;
+}
+
+
+char* keymap_arr = &keymap;
+char rows_to_key(int rows) {
+  rows &= 0xF;
+  drive_column(col & 0b11);
+      if((rows & 0b0001) == 1){
+        return keymap_arr[(4*(col & 0b11))];
+      }
+      else if((rows & 0b0010) == 2){
+        return keymap_arr[1 + 4*(col & 0b11)];
+      }
+      else if((rows & 0b0100) == 4){
+        return keymap_arr[2 + 4*(col & 0b11)];
+      }
+      else if((rows & 0b1000) == 8){
+        return keymap_arr[(3 + 4*(col & 0b11))];
+      }
+}
+void TIM14_IRQHandler(){
+  TIM14->SR &= ~TIM_SR_UIF;
+  int rows = read_rows();
+  if(rows != 0){
+    char key = rows_to_key(rows);
+    handle_key(key);
+  }
+  col++;
+  if(col > 7){
+    col = 0;
+  }
+  drive_column(col);
+}
+void handle_key(char key){
+//global player access
+
+//to reuse code maybe
+//2->up
+//5->down
+//4->left
+//6->right
+//a fire
+// b rot
+    switch (key)
+    {
+        case '2':
+        player_1.input = 1 << 5;
+        break; case '4':
+        player_1.input = 1 << 3;
+        break;case '5':
+        player_1.input = 1 << 4;
+        break;case '6':
+        player_1.input = 1 << 2;
+        break;case 'B':
+        player_1.input = 1 << 1;
+        break;case 'A':
+        player_1.input = 1 << 0;
+        break;case '8':
+        player_2.input = 1 << 5;
+        break;case '*':
+        player_2.input = 1 << 3;
+        break;case '0':
+        player_2.input = 1 << 4;
+        break;case '#':
+        player_2.input = 1 << 2;
+        break;case 'C':
+        player_2.input = 1 << 1;
+        break;case 'D':
+        player_2.input = 1 << 0;
+        break;
+    }
+
+}
+void setup_tim14() {
+    RCC->APB1ENR |= RCC_APB1ENR_TIM14EN;
+    TIM14->PSC = 4799; 
+    TIM14->ARR = 9;
+    TIM14->DIER |= TIM_DIER_UIE;
+    NVIC->ISER[0] |= 1<< TIM14_IRQn;
+    TIM14->CR1 |= TIM_CR1_CEN;
+    
+}
+enable_gpioC(){
+    RCC->AHBENR |= RCC_AHBENR_GPIOCEN;
+    /*
+    Configures pins PC4 – PC7 to be outputs
+Configures pins PC0 – PC3 to be inputs
+Configures pins PC0 – PC3 to be internally pulled low
+
+Repeat PC8-15
+    */
+   GPIOC->MODER |= 0b0101010100000000;
+   GPIOC->MODER |= 0b0101010100000000 << 16;
+   GPIOC->PUPDR |= 0x00AA00AA;
+}
+
+void TIM15_IRQHandler(){
+    TIM15->SR &= ~TIM_SR_UIF;
+    for(int i = 0; i< FIELD_WIDTH;i++){
+        for(int j=0; i<FIELD_HEIGHT;i++){
+            square_set(i,j,&player_1);
+        }
+    }
+}
+void setup_tim15(){
+    RCC->APB1ENR |= RCC_APB2ENR_TIM15EN;
+    TIM15->PSC = 48000-1; 
+    TIM15->ARR = 500-1;
+    TIM15->DIER |= TIM_DIER_UIE;
+    NVIC->ISER[0] |= 1<< TIM15_IRQn;
+    TIM15->CR1 |= TIM_CR1_CEN;
 }

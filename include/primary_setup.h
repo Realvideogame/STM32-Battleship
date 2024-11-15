@@ -26,10 +26,12 @@ void startPWM(void);
 #define NUM_SHIPS 5
 
 typedef struct _player{
+  int8_t player_num;
+
   int8_t x; // Player's cursor x-cord
   int8_t y; // Player's cursor y-cord
 
-  int8_t field[FIELD_HEIGHT][FIELD_WIDTH];// Fields of each player's ships
+  int8_t field[FIELD_WIDTH][FIELD_WIDTH];// Fields of each player's ships
   // 0 - Empty
   // 1 - Ship
   // 2 - missed
@@ -51,7 +53,7 @@ typedef struct _player{
 } player;
 
 void mapgen(void);
-void square_set(uint8_t, uint8_t, player*);
+void square_set(uint8_t, uint8_t, player*, player*);
 
 
 
@@ -62,6 +64,7 @@ int move_cursor(player*);
 int place_ship(player* p);
 int attack_turn(player* attacker, player* defender);
 int check_player_status(player* p);
+void enable_gpioC();
 
 int8_t ship_size[NUM_SHIPS];
 
@@ -83,5 +86,6 @@ char get_keypress(void);  // wait for only a button press event.
 float getfloat(void);     // read a floating-point number from keypad
 void setup_tim14(void);
 void setup_tim15(void);
+void update_grid();
 
 #endif

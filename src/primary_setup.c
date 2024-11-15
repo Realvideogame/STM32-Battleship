@@ -10,7 +10,8 @@ swap_player: switch buttons and turn value
 called by turn timer
 no arguments
 */
-
+void handle_key(char);
+void draw_cursor(u8, u8);
 /* FUNCTION HEADER:
 PWM: LEDs will fade from bright green to nothing. Until it reaches 5 seconds, 
 then the LED will flash red every second to indicate a coutdown to 0
@@ -279,40 +280,52 @@ DRAWING UTILITIES
 
 void mapgen(void){
     //240 by 320 pixel map
-    LCD_DrawFillRectangle(0,0,240,320,LIGHTBLUE);
+    LCD_DrawFillRectangle(0,0,240,240,LIGHTBLUE);
     //3 pixel wide line
     //short axis
     for(int i = 0; i < 240; i+=240/FIELD_WIDTH){ //integer division
         LCD_DrawFillRectangle(i,0,i+3,320, DARKBLUE);
     }
     //long axis
-    for(int i = 0; i <= 320; i+=320/FIELD_HEIGHT){
+    for(int i = 0; i <= 240; i+=320/FIELD_HEIGHT){
         LCD_DrawFillRectangle(0,i,240,i+3, DARKBLUE);
     }
+    LCD_DrawFillRectangle(0,238,240,320,BLACK);
+    LCD_DrawFillRectangle(238,0,320,320,BLACK);
 }
 
-void square_set(u8 x, u8 y, player* p){
-    u8 x_real = (x*240 / FIELD_WIDTH);
-    u8 y_real = (y*320 / FIELD_HEIGHT);
-    if(p->field[p->y][p->x] == 0){
-    //clear space
+void square_set(u8 x, u8 y, player* p, player* p2){
+    u8 x_real = (x*234 / FIELD_WIDTH);
+    u8 y_real = (y*312 / FIELD_HEIGHT);
+    if (game_status == 0){ // placing ships
         LCD_DrawFillRectangle(x_real+4,y_real+4,x_real+25,y_real+25,LIGHTBLUE);
-    } else if(p->field[p->y][p->x] == 1){
-        //circle for ship
-        LCD_Circle(x_real+12,y_real+12,8,1,GRAY);
-    }else if(p->field[p->y][p->x] == 2){
-        //blue X for miss
-        LCD_DrawLine(x_real,y_real,x_real+26,y_real+26,DARKBLUE);
-        LCD_DrawLine(x_real+26,y_real,x_real,y_real+26,DARKBLUE);
-    }else if(p->field[p->y][p->x] == 3){
-        LCD_Circle(x_real+12,y_real+12,8,1,LGRAYBLUE);
-        //different Circle for dead ship bit
+        if(x == p->x && y == p->y) {
+            draw_cursor(x, y);
+        }
+        if(p->field[y][x] == 1){
+            //circle for ship
+            LCD_Circle(x_real+14,y_real+14,6,1,MAGENTA);
+        }
+    }
+    if (game_status == 1) { // player 1's turn (display enemy field)
+        if(p2->field[y][x] == 0) {
+            //clear space
+            LCD_DrawFillRectangle(x_real+4,y_real+4,x_real+25,y_real+25,LIGHTBLUE);
+        } else if(p->field[y][x] == 2) {
+            //blue X for miss
+            LCD_DrawLine(x_real,y_real,x_real+26,y_real+26,DARKBLUE);
+            LCD_DrawLine(x_real+26,y_real,x_real,y_real+26,DARKBLUE);
+        } else if(p->field[y][x] == 3) {
+            //blue X for miss
+            LCD_DrawLine(x_real,y_real,x_real+26,y_real+26,RED);
+            LCD_DrawLine(x_real+26,y_real,x_real,y_real+26,RED);
+        }
     }
 }
 void draw_cursor(u8 x, u8 y){
     //a + of 2 lines, should probably be drawn on top of the ship piece
-    u8 x_real = (x*240 / FIELD_WIDTH);
-    u8 y_real = (y*320 / FIELD_HEIGHT);
+    u8 x_real = (x*234 / FIELD_WIDTH);
+    u8 y_real = (y*312 / FIELD_HEIGHT);
     LCD_DrawFillRectangle(x_real+13,y_real,x_real+15,y_real+26,DARKBLUE);
     LCD_DrawFillRectangle(x_real,y_real+13,x_real+26,y_real+15,DARKBLUE);
 }
@@ -352,12 +365,14 @@ void update_history(int c, int rows)
 
 void drive_column(int c)
 {
-    GPIOC->BSRR = (0xf00000 | ~(1 << (c + 4))) | (0xf00000 | ~(1 << (c + 12)));
+    c &= 0x3;
+    GPIOC->BSRR |= 0xF << 20;
+    GPIOC->BSRR |= 1 << (4+c);
 }
 
 int read_rows()
 {
-    return (~GPIOC->IDR) & 0xf0f;
+    return (GPIOC->IDR) & 0xf;
 }
 
 char get_key_event(void) {
@@ -422,6 +437,15 @@ void handle_key(char key){
 //6->right
 //a fire
 // b rot
+    LCD_DrawString(0, 240, BLACK, WHITE, &key, 16, 0);
+    player_1.ship_index += 49;
+    LCD_DrawString(0, 256, BLACK, WHITE, &(player_1.ship_index), 16, 0);
+    player_1.ship_index -= 49;
+
+    player_2.ship_index += 49;
+    LCD_DrawString(0, 272, BLACK, WHITE, &(player_2.ship_index), 16, 0);
+    player_2.ship_index -= 49;
+
     switch (key)
     {
         case '2':
@@ -454,14 +478,14 @@ void handle_key(char key){
 }
 void setup_tim14() {
     RCC->APB1ENR |= RCC_APB1ENR_TIM14EN;
-    TIM14->PSC = 4799; 
-    TIM14->ARR = 9;
+    TIM14->PSC = 4800-1;//4799; 
+    TIM14->ARR = 500-1;//9;
     TIM14->DIER |= TIM_DIER_UIE;
     NVIC->ISER[0] |= 1<< TIM14_IRQn;
     TIM14->CR1 |= TIM_CR1_CEN;
     
 }
-enable_gpioC(){
+void enable_gpioC(){
     RCC->AHBENR |= RCC_AHBENR_GPIOCEN;
     /*
     Configures pins PC4 – PC7 to be outputs
@@ -471,23 +495,52 @@ Configures pins PC0 – PC3 to be internally pulled low
 Repeat PC8-15
     */
    GPIOC->MODER |= 0b0101010100000000;
-   GPIOC->MODER |= 0b0101010100000000 << 16;
-   GPIOC->PUPDR |= 0x00AA00AA;
+   GPIOC->PUPDR |= 0xAA;
 }
 
 void TIM15_IRQHandler(){
     TIM15->SR &= ~TIM_SR_UIF;
     for(int i = 0; i< FIELD_WIDTH;i++){
-        for(int j=0; i<FIELD_HEIGHT;i++){
-            square_set(i,j,&player_1);
+        for(int j=0; j<FIELD_WIDTH;j++){
+            square_set(i,j,&player_1, &player_2);
         }
     }
 }
+
+void update_grid() {
+    for(int i = 0; i< FIELD_WIDTH;i++){
+        for(int j=0; j<FIELD_WIDTH;j++){
+            square_set(i,j,&player_1, &player_2);
+        }
+    }
+    if(game_status == 0) {
+        draw_ship_tbp(&player_1);
+    }
+}
+
 void setup_tim15(){
-    RCC->APB1ENR |= RCC_APB2ENR_TIM15EN;
+    RCC->APB2ENR |= RCC_APB2ENR_TIM15EN;
     TIM15->PSC = 48000-1; 
-    TIM15->ARR = 500-1;
+    TIM15->ARR = 1000-1;
     TIM15->DIER |= TIM_DIER_UIE;
     NVIC->ISER[0] |= 1<< TIM15_IRQn;
     TIM15->CR1 |= TIM_CR1_CEN;
+}
+
+int draw_ship_tbp(player* p) {
+    int x_real, y_real;
+    if(p->rotation) { // placing horizontal ship
+        for(int i = 0; i < ship_size[p->ship_index]; i++) {
+            x_real = ((p->x+i) * 232) / FIELD_WIDTH;
+            y_real = p->y * 312 / FIELD_HEIGHT;
+            LCD_Circle(x_real+14,y_real+14,4,1,YELLOW);
+        }
+    }
+    else { // placing vertical ship
+        for(int i = 0; i < ship_size[p->ship_index]; i++) {
+            x_real = ((p->x) * 232) / FIELD_WIDTH;
+            y_real = (p->y + i) * 312 / FIELD_HEIGHT;
+            LCD_Circle(x_real+14,y_real+14,4,1,YELLOW);
+        }
+    }
 }

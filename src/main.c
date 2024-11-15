@@ -29,7 +29,6 @@ int main() {
     mapgen(); //display empty map to main
     enable_gpioC();
     setup_tim14();
-    setup_tim15();
 
     ship_size[0] = 5;
     ship_size[1] = 4;
@@ -44,7 +43,11 @@ int main() {
     player_2.y = 0;
     player_1.input = 0;
     player_2.input = 0;
-    for(int i = 0; i < FIELD_HEIGHT; i++) {
+
+    player_1.player_num = 1;
+    player_2.player_num = 2;
+
+    for(int i = 0; i < FIELD_WIDTH; i++) {
       for(int j = 0; j < FIELD_WIDTH; j++) {
         player_1.field[i][j] = 0;
         player_2.field[i][j] = 0;
@@ -56,26 +59,23 @@ int main() {
     // 300 sec total
     //tbd: find correct rotation
     //secondary should also call mapgen
-    draw_cursor(1, 1);
 
-    start_timer(5);
-    while(timer_set) {}
-    square_clear(1,1,&player_1);
+    update_grid();
+    game_status = 0;
+    char char_to_disp;
+    while(((player_1.ship_index < NUM_SHIPS) || (player_2.ship_index < NUM_SHIPS))) { 
 
-    start_timer(5);
-    while(timer_set) {}
-    draw_cursor(1, 1);
+      if (player_1.ship_index < NUM_SHIPS) {
+        move_cursor(&player_1); // moves player 1's cursor as needed
+        place_ship(&player_1); // place or rotates player 1 ship
+        player_1.input = 0;
+      }
 
-    start_timer(60);
-    while(timer_set && ((player_1.ship_index < NUM_SHIPS) || (player_2.ship_index < NUM_SHIPS))) { 
-
-      move_cursor(&player_1); // moves player 1's cursor as needed
-      place_ship(&player_1); // place or rotates player 1 ship
-      player_1.input = 0;
-
-      move_cursor(&player_2); // moves player 2's cursor as needed
-      place_ship(&player_2); // place or rotates player 2 ship
-      player_1.input = 0;
+      if (player_2.ship_index < NUM_SHIPS) {
+        move_cursor(&player_2); // moves player 2's cursor as needed
+        place_ship(&player_2); // place or rotates player 2 ship
+        player_2.input = 0;
+      }
     }
     //pwm now needed
     setup_led_array();
@@ -83,6 +83,7 @@ int main() {
     // phase 2 - turn by turn game
     // 60 sec a turn (FOR NOW)
     int winner = 0;
+    game_status = 1;
     while (game_status < 3) {
       while(game_status == 1 && attack_turn(&player_1, &player_2) == 1) { // Player 1 Turn
         if(check_player_status(&player_2)) {
@@ -116,24 +117,28 @@ move_cursor:
 int move_cursor(player* p) {
   switch (p->input & 0b00111111) {
     case 0b100000: // Move Cursor Up
-      if (p->y != 0) p->y -= 1;
-      square_clear(p->x, (p->y)-1,p);
-      draw_cursor(p->x,p->y);
+      if (p->y != 0) {
+        p->y -= 1;
+        if(p->player_num == 1) update_grid();
+      }
       break;
     case 0b010000: // Move Cursor Down
-      if(p->y < (FIELD_HEIGHT - (1-p->rotation) * ship_size[p->ship_index])) p->y += 1;
-      square_clear(p->x, (p->y)+1,p);
-      draw_cursor(p->x,p->y);
+      if(p->y < (FIELD_WIDTH - (1-p->rotation) * ship_size[p->ship_index])) {
+        p->y += 1;
+        if(p->player_num == 1) update_grid();
+      }
       break;
     case 0b001000: // Move Cursor Left
-      if(p->x != 0) p->x -= 1;
-      square_clear((p->x)+1, p->y,p);
-      draw_cursor(p->x,p->y);
+      if(p->x != 0) {
+        p->x -= 1;
+        if(p->player_num == 1) update_grid();
+      }
       break;
     case 0b000100: // Move Cursor Right
-      if(p->x < (FIELD_WIDTH - (p->rotation)*ship_size[p->ship_index])) p->x += 1;
-      square_clear((p->x)-1, p->y,p);
-      draw_cursor(p->x,p->y);
+      if(p->x < (FIELD_WIDTH - (p->rotation)*ship_size[p->ship_index])) {
+        p->x += 1;
+        if(p->player_num == 1) update_grid();
+      }
       break;
   }
   return 0;
@@ -150,6 +155,7 @@ int place_ship(player* p) {
     p->x = 0;
     p->y = 0;
     p->rotation = 1 - p->rotation;
+    if(p->player_num == 1) update_grid();
   }
   else if ((p->input & 0b00111111) == 0b01){ // placing ship
     if(p->rotation) { // placing horizontal ship
@@ -173,6 +179,7 @@ int place_ship(player* p) {
     p->x=0;
     p->y=0;
     p->rotation=0;
+    if(p->player_num == 1) update_grid();
   }
   return 0;
 }

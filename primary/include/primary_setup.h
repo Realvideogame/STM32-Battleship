@@ -52,6 +52,12 @@ typedef struct _player{
 
 } player;
 
+typedef struct _users {
+  player p1;
+  player p2;
+  int8_t status;
+} users;
+
 void mapgen(void);
 void square_set(uint8_t, uint8_t, player*, player*);
 
@@ -66,12 +72,12 @@ int attack_turn(player* attacker, player* defender);
 int check_player_status(player* p);
 void enable_gpioC();
 
-int8_t ship_size[NUM_SHIPS];
+int8_t ship_size[NUM_SHIPS+1];
 
-
-player player_1;
-player player_2;
-int8_t game_status; // 0 - placing ship phase, 1 - player 1's turn, 2 - player 2's turn, 3 - player 1 won, 4 - player 2 won, 5 - Tied Game
+users bs_users;
+player* player_1;
+player* player_2;
+int8_t* game_status; // 0 - placing ship phase, 1 - player 1's turn, 2 - player 2's turn, 3 - player 1 won, 4 - player 2 won, 5 - Tied Game
 
 int8_t timer_set;
 void start_timer(int); // waits x secounds, should set a global variable to 1 and have a timer go for x sec, trigering an interupt after x sec which sets the global variable to 0

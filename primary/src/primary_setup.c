@@ -2,8 +2,6 @@
 #include <stm32f091xc.h>
 #include "lcd.h"
 #include <stdint.h>
-volatile uint8_t dmaData; //variable to store data
-uint8_t txBuffer[128];
 
 /*
 swap_player: switch buttons and turn value
@@ -99,28 +97,28 @@ void TIM2_IRQHandler() {
 
 void setup_dma(void) {
     RCC -> AHBENR |= RCC_AHBENR_DMA1EN;
+
     DMA1_Channel5 -> CPAR = (uint32_t)(& (SPI2 -> DR));
-    DMA1_Channel5 -> CMAR = (uint32_t) txBuffer;
-    DMA1_Channel5 -> CNDTR = sizeof(txBuffer);
-    DMA1_Channel5 -> CCR = DMA_CCR_MINC | DMA_CCR_DIR | DMA_CCR_TCIE | DMA_CCR_EN;
+    DMA1_Channel5 -> CMAR = (uint32_t) &bs_users;
+    DMA1_Channel5 -> CNDTR = sizeof(users);
+    DMA1_Channel5 -> CCR = DMA_CCR_MINC | DMA_CCR_DIR | DMA_CCR_TCIE | DMA_CCR_EN | DMA_CCR_CIRC;
 
-    DMA1_Channel4 -> CPAR = (uint32_t)(& (SPI2 -> DR));
-    DMA1_Channel4 -> CMAR = (uint32_t) (& dmaData);
-    DMA1_Channel4 -> CNDTR = 128; //size of data, can be adjusted as necessary
-    DMA1_Channel4 -> CCR = DMA_CCR_MINC | DMA_CCR_TCIE | DMA_CCR_EN;           
-    SPI2->CR1 |= SPI_CR1_SPE; //Enable SPI2
+    // DMA1_Channel4 -> CPAR = (uint32_t)(& (SPI2 -> DR));
+    // DMA1_Channel4 -> CMAR = (uint32_t) (& dmaData);
+    // DMA1_Channel4 -> CNDTR = 128; //size of data, can be adjusted as necessary
+    // DMA1_Channel4 -> CCR = DMA_CCR_MINC | DMA_CCR_TCIE | DMA_CCR_EN | DMA_CCR_CIRC;           
 
-    NVIC->ISER[0] |= (1 << DMA1_Channel4_5_IRQn);
+    // NVIC->ISER[0] |= (1 << DMA1_Channel4_5_IRQn);
 }
 
-void DMA1_Channel4_5_IRQHandler(void) {
-    if (DMA1->ISR & DMA_ISR_TCIF5) {
-        DMA1->IFCR |= DMA_IFCR_CTCIF5;
-    }
-    if (DMA1->ISR & DMA_ISR_TCIF4) {
-        DMA1->IFCR |= DMA_IFCR_CTCIF4;
-    }
-}
+// void DMA1_Channel4_5_IRQHandler(void) {
+//     if (DMA1->ISR & DMA_ISR_TCIF5) {
+//         DMA1->IFCR |= DMA_IFCR_CTCIF5;
+//     }
+//     if (DMA1->ISR & DMA_ISR_TCIF4) {
+//         DMA1->IFCR |= DMA_IFCR_CTCIF4;
+//     }
+// }
 
 /* FUNCTION HEADER:
 SPI communication between microprocessors
@@ -141,7 +139,6 @@ void init_master(void) {
     SPI2 -> CR1 &= ~SPI_CR1_SPE; //Disable the SPI2 Channel first
     SPI2 -> CR1 |= (SPI_CR1_BR_0 | SPI_CR1_BR_1 | SPI_CR1_BR_2); //Set the baud rate as low as possible (Dividing by 256)
 
-    SPI2 -> CR2 = (SPI_CR2_DS_0 | SPI_CR2_DS_1 | SPI_CR2_DS_2 | SPI_CR2_DS_3); //Setting data size to 16 bits (NEED TO CHANGE?)
     SPI2 -> CR1 |= SPI_CR1_MSTR; //Configure the SPI channel to be in "master configuration"
     SPI2 -> CR2 |= (SPI_CR2_SSOE | SPI_CR2_NSSP); //Enable SS Output enable bit and enable NSSP
     SPI2 -> CR2 |= SPI_CR2_TXDMAEN; //Set the TXDMAEN bit to enable DMA transfers on transmit buffer empty
@@ -159,7 +156,6 @@ void init_slave(void) {
     GPIOB -> AFR[1] &= ~(GPIO_AFRH_AFSEL12 | GPIO_AFRH_AFSEL13 | GPIO_AFRH_AFSEL15); 
 
     SPI2 -> CR1 &= ~SPI_CR1_SPE; //Disable the SPI2 Channel first
-    SPI2 -> CR2 = (SPI_CR2_DS_0 | SPI_CR2_DS_1 | SPI_CR2_DS_2 | SPI_CR2_DS_3); //Setting data size to 16 bits (NEED TO CHANGE?)
     SPI2 -> CR1 &= ~SPI_CR1_MSTR; //Congigure as slave
     SPI2->CR2 |= SPI_CR2_RXDMAEN;          
     SPI2->CR1 |= SPI_CR1_SPE; //Enable SPI2
@@ -297,7 +293,7 @@ void mapgen(void){
 void square_set(u8 x, u8 y, player* p, player* p2){
     u8 x_real = (x*234 / FIELD_WIDTH);
     u8 y_real = (y*312 / FIELD_HEIGHT);
-    if (game_status == 0){ // placing ships
+    if (*game_status == 0){ // placing ships
         LCD_DrawFillRectangle(x_real+4,y_real+4,x_real+25,y_real+25,LIGHTBLUE);
         if(x == p->x && y == p->y) {
             draw_cursor(x, y);
@@ -307,7 +303,7 @@ void square_set(u8 x, u8 y, player* p, player* p2){
             LCD_Circle(x_real+14,y_real+14,6,1,MAGENTA);
         }
     }
-    if (game_status == 1) { // player 1's turn (display enemy field)
+    if (*game_status == 1) { // player 1's turn (display enemy field)
         if(p2->field[y][x] == 0) {
             //clear space
             LCD_DrawFillRectangle(x_real+4,y_real+4,x_real+25,y_real+25,LIGHTBLUE);
@@ -438,40 +434,40 @@ void handle_key(char key){
 //a fire
 // b rot
     LCD_DrawString(0, 240, BLACK, WHITE, &key, 16, 0);
-    player_1.ship_index += 49;
-    LCD_DrawString(0, 256, BLACK, WHITE, &(player_1.ship_index), 16, 0);
-    player_1.ship_index -= 49;
+    player_1->ship_index += 49;
+    LCD_DrawString(0, 256, BLACK, WHITE, &(player_1->ship_index), 16, 0);
+    player_1->ship_index -= 49;
 
-    player_2.ship_index += 49;
-    LCD_DrawString(0, 272, BLACK, WHITE, &(player_2.ship_index), 16, 0);
-    player_2.ship_index -= 49;
+    player_2->ship_index += 49;
+    LCD_DrawString(0, 272, BLACK, WHITE, &(player_2->ship_index), 16, 0);
+    player_2->ship_index -= 49;
 
     switch (key)
     {
         case '2':
-        player_1.input = 1 << 5;
+        player_1->input = 1 << 5;
         break; case '4':
-        player_1.input = 1 << 3;
+        player_1->input = 1 << 3;
         break;case '5':
-        player_1.input = 1 << 4;
+        player_1->input = 1 << 4;
         break;case '6':
-        player_1.input = 1 << 2;
+        player_1->input = 1 << 2;
         break;case 'B':
-        player_1.input = 1 << 1;
+        player_1->input = 1 << 1;
         break;case 'A':
-        player_1.input = 1 << 0;
+        player_1->input = 1 << 0;
         break;case '8':
-        player_2.input = 1 << 5;
+        player_2->input = 1 << 5;
         break;case '*':
-        player_2.input = 1 << 3;
+        player_2->input = 1 << 3;
         break;case '0':
-        player_2.input = 1 << 4;
+        player_2->input = 1 << 4;
         break;case '#':
-        player_2.input = 1 << 2;
+        player_2->input = 1 << 2;
         break;case 'C':
-        player_2.input = 1 << 1;
+        player_2->input = 1 << 1;
         break;case 'D':
-        player_2.input = 1 << 0;
+        player_2->input = 1 << 0;
         break;
     }
 
@@ -502,7 +498,7 @@ void TIM15_IRQHandler(){
     TIM15->SR &= ~TIM_SR_UIF;
     for(int i = 0; i< FIELD_WIDTH;i++){
         for(int j=0; j<FIELD_WIDTH;j++){
-            square_set(i,j,&player_1, &player_2);
+            square_set(i,j,player_1, player_2);
         }
     }
 }
@@ -510,11 +506,11 @@ void TIM15_IRQHandler(){
 void update_grid() {
     for(int i = 0; i< FIELD_WIDTH;i++){
         for(int j=0; j<FIELD_WIDTH;j++){
-            square_set(i,j,&player_1, &player_2);
+            square_set(i,j,player_1, player_2);
         }
     }
-    if(game_status == 0) {
-        draw_ship_tbp(&player_1);
+    if(*game_status == 0) {
+        draw_ship_tbp(player_1);
     }
 }
 

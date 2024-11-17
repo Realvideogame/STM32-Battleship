@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "primary_setup.h": "c",
+        "stddef.h": "c",
+        "lcd.h": "c",
+        "stdint.h": "c"
+    }
+}

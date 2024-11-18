@@ -3,6 +3,7 @@
 #include "lcd.h"
 #include <stdint.h>
 
+
 /*
 swap_player: switch buttons and turn value
 called by turn timer
@@ -10,6 +11,7 @@ no arguments
 */
 void handle_key(char);
 void draw_cursor(u8, u8);
+void display_stats(void);
 /* FUNCTION HEADER:
 PWM: LEDs will fade from bright green to nothing. Until it reaches 5 seconds, 
 then the LED will flash red every second to indicate a coutdown to 0
@@ -44,9 +46,9 @@ void setup_led_array(void) {
     TIM1 -> CCR3 = 2399; 
 
     TIM1 -> CCER |= (TIM_CCER_CC1E | TIM_CCER_CC2E | TIM_CCER_CC3E | TIM_CCER_CC4E); //Enable the four channel outputs
-    NVIC -> ISER[0] |= 1 << TIM1_BRK_UP_TRG_COM_IRQn; //Enable the interrupt for Timer 1
+    //NVIC -> ISER[0] |= 1 << TIM1_BRK_UP_TRG_COM_IRQn; //Enable the interrupt for Timer 1
 
-    TIM1 -> CR1 |= TIM_CR1_CEN; //Enable TIM1
+    //TIM1 -> CR1 |= TIM_CR1_CEN; //Enable TIM1
 
     //SET UP TIM2
     RCC -> APB1ENR |= RCC_APB1ENR_TIM2EN;
@@ -54,7 +56,7 @@ void setup_led_array(void) {
     TIM2 -> ARR = 100000 - 1; // 1 Hz
     TIM2 -> DIER = TIM_DIER_UIE; 
     NVIC -> ISER[0] |= 1 << TIM2_IRQn; 
-    TIM2 -> CR1 |= TIM_CR1_CEN; //Enable Timer 2
+    //TIM2 -> CR1 |= TIM_CR1_CEN; //Enable Timer 2
 }
 
 /*
@@ -67,7 +69,7 @@ void setup_led_array(void) {
 */
 #define WARNING_TIME 5
 int32_t time_remaining = 60;
-int32_t toggle = 1;
+int32_t toggle = 0;
 float x = 2400;
 
 void TIM2_IRQHandler() {
@@ -92,6 +94,27 @@ void TIM2_IRQHandler() {
         TIM1->CR1 &= ~TIM_CR1_CEN; // Stop TIM1
         TIM2 -> CR1 &= ~TIM_CR1_CEN; // Stop TIM2
     }
+}
+
+void start_new_round_LED(void) {
+    TIM1 -> CNT = 0; // Reset counter
+    time_remaining = 60; // Reset for the next round if needed
+    TIM1 -> CCR1 = 2400; //Turn of red LED
+    TIM1 -> CCR3 = 0; //Turn on the green LED
+    x = 2400; 
+    toggle = 0;
+
+    TIM1 -> CR1 |= TIM_CR1_CEN; //Enable TIM1
+    TIM2 -> CR1 |= TIM_CR1_CEN; // Start or restart TIM2 counter
+}
+
+void stop_LED (void) {
+    TIM1 -> CCR1 = 2400; //Turn of red LED
+    TIM1 -> CCR2 = 2400;
+    TIM1 -> CCR3 = 2400; //Turn on the green LED
+
+    TIM1 -> CR1 &= ~TIM_CR1_CEN;
+    TIM2 -> CR1 &= ~TIM_CR1_CEN; // Turn off TIM1 counter
 }
 
 
@@ -192,6 +215,7 @@ void setup_turn_timer(){
 
 void start_timer(int tim) {
     TIM7 -> ARR = tim*1000 - 1;
+    TIM7->CNT = 0;
 
     timer_set = 1;
     TIM7 -> CR1 |= TIM_CR1_CEN;
@@ -302,21 +326,44 @@ void square_set(u8 x, u8 y, player* p, player* p2){
             //circle for ship
             LCD_Circle(x_real+14,y_real+14,6,1,MAGENTA);
         }
-    }
-    if (*game_status == 1) { // player 1's turn (display enemy field)
-        if(p2->field[y][x] == 0) {
-            //clear space
-            LCD_DrawFillRectangle(x_real+4,y_real+4,x_real+25,y_real+25,LIGHTBLUE);
-        } else if(p->field[y][x] == 2) {
+    } else if (*game_status == 1) { // player 1's turn (display enemy field)
+        LCD_DrawFillRectangle(x_real+4,y_real+4,x_real+25,y_real+25,LIGHTBLUE);
+        if((x == p->x && y == p->y)) {
+            draw_cursor(x, y);
+        } else if(p2->field[y][x] == 2) {
             //blue X for miss
             LCD_DrawLine(x_real,y_real,x_real+26,y_real+26,DARKBLUE);
             LCD_DrawLine(x_real+26,y_real,x_real,y_real+26,DARKBLUE);
-        } else if(p->field[y][x] == 3) {
-            //blue X for miss
+        } else if(p2->field[y][x] == 3) {
+            //Red X for hit
             LCD_DrawLine(x_real,y_real,x_real+26,y_real+26,RED);
             LCD_DrawLine(x_real+26,y_real,x_real,y_real+26,RED);
         }
-    }
+    } else if (*game_status == 2) {
+        LCD_DrawFillRectangle(x_real+4,y_real+4,x_real+25,y_real+25,LIGHTBLUE);
+        if(p->field[y][x] == 1) {
+            //purple circle for ship
+            LCD_Circle(x_real+14,y_real+14,6,1,MAGENTA);
+        } else if(p->field[y][x] == 3) {
+            //red circle for hit ship
+            LCD_Circle(x_real+14,y_real+14,6,1,BLACK);
+        } else if(p->field[y][x] == 2) {
+            //blue X for missed
+            LCD_DrawLine(x_real,y_real,x_real+26,y_real+26,DARKBLUE);
+            LCD_DrawLine(x_real+26,y_real,x_real,y_real+26,DARKBLUE);
+        }
+    } else if (game_status >= 3) { // player 1's turn (display enemy field)
+        LCD_DrawFillRectangle(x_real+4,y_real+4,x_real+25,y_real+25,LIGHTBLUE);
+        if(p2->field[y][x] == 2) {
+            //blue X for miss
+            LCD_DrawLine(x_real,y_real,x_real+26,y_real+26,DARKBLUE);
+            LCD_DrawLine(x_real+26,y_real,x_real,y_real+26,DARKBLUE);
+        } else if(p2->field[y][x] == 3) {
+            //Red X for hit
+            LCD_DrawLine(x_real,y_real,x_real+26,y_real+26,RED);
+            LCD_DrawLine(x_real+26,y_real,x_real,y_real+26,RED);
+        }
+    } 
 }
 void draw_cursor(u8 x, u8 y){
     //a + of 2 lines, should probably be drawn on top of the ship piece
@@ -433,15 +480,6 @@ void handle_key(char key){
 //6->right
 //a fire
 // b rot
-    LCD_DrawString(0, 240, BLACK, WHITE, &key, 16, 0);
-    player_1->ship_index += 49;
-    LCD_DrawString(0, 256, BLACK, WHITE, &(player_1->ship_index), 16, 0);
-    player_1->ship_index -= 49;
-
-    player_2->ship_index += 49;
-    LCD_DrawString(0, 272, BLACK, WHITE, &(player_2->ship_index), 16, 0);
-    player_2->ship_index -= 49;
-
     switch (key)
     {
         case '2':
@@ -464,9 +502,9 @@ void handle_key(char key){
         player_2->input = 1 << 4;
         break;case '#':
         player_2->input = 1 << 2;
-        break;case 'C':
-        player_2->input = 1 << 1;
         break;case 'D':
+        player_2->input = 1 << 1;
+        break;case 'C':
         player_2->input = 1 << 0;
         break;
     }
@@ -475,7 +513,7 @@ void handle_key(char key){
 void setup_tim14() {
     RCC->APB1ENR |= RCC_APB1ENR_TIM14EN;
     TIM14->PSC = 4800-1;//4799; 
-    TIM14->ARR = 500-1;//9;
+    TIM14->ARR = 250-1;//9;
     TIM14->DIER |= TIM_DIER_UIE;
     NVIC->ISER[0] |= 1<< TIM14_IRQn;
     TIM14->CR1 |= TIM_CR1_CEN;
@@ -512,6 +550,9 @@ void update_grid() {
     if(*game_status == 0) {
         draw_ship_tbp(player_1);
     }
+    if(*game_status >= 3) {
+        display_stats();
+    }
 }
 
 void setup_tim15(){
@@ -539,4 +580,53 @@ int draw_ship_tbp(player* p) {
             LCD_Circle(x_real+14,y_real+14,4,1,YELLOW);
         }
     }
+}
+
+void display_stats(void) {
+    if(game_status == 3) LCD_DrawString(0, 240, WHITE, BLACK, "Player One Wins", 16, 1);
+    if(game_status == 4) LCD_DrawString(0, 240, WHITE, BLACK, "Player Two Wins", 16, 1);
+    if(game_status == 5) LCD_DrawString(0, 240, WHITE, BLACK, "Tie Game", 16, 1);
+    
+    char bugger[50];
+    sprintf(bugger, "Player One Accuracy: %d%%", (100 * player_1->total_hits)/player_1->total_shots);
+    LCD_DrawString(0, 256, WHITE, BLACK, bugger, 16, 1);
+
+    sprintf(bugger, "Player One Max Hit Streak: %d", player_1->max_hit_streak);
+    LCD_DrawString(0, 272, WHITE, BLACK, bugger, 16, 1);
+
+    sprintf(bugger, "Player One Max Miss Streak: %d", player_1->max_miss_streak);
+    LCD_DrawString(0, 288, WHITE, BLACK, bugger, 16, 1);
+
+    sprintf(bugger, "Number of rounds: %d", bs_users.num_rounds);
+    LCD_DrawString(0, 304, WHITE, BLACK, bugger, 16, 1);
+
+}
+
+void setup_serial(void)
+{
+    RCC->AHBENR |= 0x00180000;
+    GPIOC->MODER  |= 0x02000000;
+    GPIOC->AFR[1] |= 0x00020000;
+    GPIOD->MODER  |= 0x00000020;
+    GPIOD->AFR[0] |= 0x00000200;
+    RCC->APB1ENR |= 0x00100000;
+    USART5->CR1 &= ~0x00000001;
+    USART5->CR1 |= 0x00008000;
+    USART5->BRR = 0x340;
+    USART5->CR1 |= 0x0000000c;
+    USART5->CR1 |= 0x00000001;
+}
+
+
+
+
+int __io_putchar(int c) {
+    if(c == '\n') {
+        while(!(USART5->ISR & USART_ISR_TXE));
+        USART5->TDR = '\r';    
+    }
+
+    while(!(USART5->ISR & USART_ISR_TXE));
+    USART5->TDR = c;
+    return c;
 }

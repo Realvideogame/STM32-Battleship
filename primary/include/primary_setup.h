@@ -19,7 +19,8 @@ void init_master(void);
 void init_slave(void);
 void TIM7_IRQHandler(void);
 void disable_turn_timer(void);
-void startPWM(void);
+void start_new_round_LED(void);
+void stop_LED(void);
 
 #define FIELD_WIDTH 9
 #define FIELD_HEIGHT 12
@@ -31,7 +32,7 @@ typedef struct _player{
   int8_t x; // Player's cursor x-cord
   int8_t y; // Player's cursor y-cord
 
-  int8_t field[FIELD_WIDTH][FIELD_WIDTH];// Fields of each player's ships
+  int8_t field[FIELD_WIDTH][FIELD_WIDTH]; // Fields of each player's ships
   // 0 - Empty
   // 1 - Ship
   // 2 - missed
@@ -49,6 +50,14 @@ typedef struct _player{
   int8_t ship_index; // current ship being placed
   int8_t rotation; // Ship rotation (0 - vert, 1 - horz)
   
+  // Game Stats
+  int8_t cur_hit_streak;
+  int8_t max_hit_streak;
+  int8_t cur_miss_streak;
+  int8_t max_miss_streak;
+
+  int8_t total_hits;
+  int8_t total_shots;
 
 } player;
 
@@ -56,6 +65,7 @@ typedef struct _users {
   player p1;
   player p2;
   int8_t status;
+  int8_t num_rounds;
 } users;
 
 void mapgen(void);
@@ -72,7 +82,7 @@ int attack_turn(player* attacker, player* defender);
 int check_player_status(player* p);
 void enable_gpioC();
 
-int8_t ship_size[NUM_SHIPS+1];
+int8_t ship_size[NUM_SHIPS];
 
 users bs_users;
 player* player_1;
@@ -93,5 +103,7 @@ float getfloat(void);     // read a floating-point number from keypad
 void setup_tim14(void);
 void setup_tim15(void);
 void update_grid();
+void setup_serial(void);
+
 
 #endif

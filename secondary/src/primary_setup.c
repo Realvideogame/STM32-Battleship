@@ -292,7 +292,13 @@ void update_grid() {
     if(*game_status == 0) {
         draw_ship_tbp(player_2);
     }
-    if(*game_status >= 3) {
+    if(*game_status == 1) {
+        LCD_DrawString(0, 240, WHITE, BLACK, "Player One's Turn", 16, 0);
+    }
+    else if(*game_status == 2) {
+        LCD_DrawString(0, 240, WHITE, BLACK, "Player Two's Turn", 16, 0);
+    }
+    else if(*game_status >= 3) {
         display_stats();
     }
 }
@@ -316,9 +322,10 @@ int draw_ship_tbp(player* p) {
 }
 
 void display_stats(void) {
-    if(game_status == 3) LCD_DrawString(0, 240, WHITE, BLACK, "Player One Wins", 16, 1);
-    if(game_status == 4) LCD_DrawString(0, 240, WHITE, BLACK, "Player Two Wins", 16, 1);
-    if(game_status == 5) LCD_DrawString(0, 240, WHITE, BLACK, "Tie Game", 16, 1);
+    LCD_DrawFillRectangle(0,238,240,256,BLACK);
+    if(*game_status == 3) LCD_DrawString(0, 240, WHITE, BLACK, "Player One Wins", 16, 1);
+    if(*game_status == 4) LCD_DrawString(0, 240, WHITE, BLACK, "Player Two Wins", 16, 1);
+    if(*game_status == 5) LCD_DrawString(0, 240, WHITE, BLACK, "Tie Game", 16, 1);
     
     char bugger[50];
     sprintf(bugger, "Player Two Accuracy: %d%%", (100 * player_2->total_hits)/player_2->total_shots);

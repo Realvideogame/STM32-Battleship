@@ -482,17 +482,17 @@ void handle_key(char key){
 // b rot
     switch (key)
     {
-        case '2':
+        case '6':
         player_1->input = 1 << 5;
-        break; case '4':
+        break; case 'A':
         player_1->input = 1 << 3;
-        break;case '5':
+        break;case '3':
         player_1->input = 1 << 4;
-        break;case '6':
+        break;case '2':
         player_1->input = 1 << 2;
-        break;case 'B':
+        break;case '1':
         player_1->input = 1 << 1;
-        break;case 'A':
+        break;case '4':
         player_1->input = 1 << 0;
         break;case '8':
         player_2->input = 1 << 5;
@@ -550,8 +550,14 @@ void update_grid() {
     if(*game_status == 0) {
         draw_ship_tbp(player_1);
     }
-    if(*game_status >= 3) {
-        display_stats();
+    // else if(*game_status >= 3) {
+    //     display_stats();
+    // }
+    else if(*game_status == 1) {
+        LCD_DrawString(0, 240, WHITE, BLACK, "Player One's Turn", 16, 0);
+    }
+    else if(*game_status == 2) {
+        LCD_DrawString(0, 240, WHITE, BLACK, "Player Two's Turn", 16, 0);
     }
 }
 
@@ -583,9 +589,7 @@ int draw_ship_tbp(player* p) {
 }
 
 void display_stats(void) {
-    if(game_status == 3) LCD_DrawString(0, 240, WHITE, BLACK, "Player One Wins", 16, 1);
-    if(game_status == 4) LCD_DrawString(0, 240, WHITE, BLACK, "Player Two Wins", 16, 1);
-    if(game_status == 5) LCD_DrawString(0, 240, WHITE, BLACK, "Tie Game", 16, 1);
+    LCD_DrawFillRectangle(0,238,240,320,BLACK);
     
     char bugger[50];
     sprintf(bugger, "Player One Accuracy: %d%%", (100 * player_1->total_hits)/player_1->total_shots);
@@ -600,6 +604,10 @@ void display_stats(void) {
     sprintf(bugger, "Number of rounds: %d", bs_users.num_rounds);
     LCD_DrawString(0, 304, WHITE, BLACK, bugger, 16, 1);
 
+    if(*game_status == 3) LCD_DrawString(0, 240, WHITE, BLACK, "Player One Wins", 16, 0);
+    if(*game_status == 4) LCD_DrawString(0, 240, WHITE, BLACK, "Player Two Wins", 16, 0);
+    if(*game_status == 5) LCD_DrawString(0, 240, WHITE, BLACK, "Tie Game", 16, 0);
+    
 }
 
 void setup_serial(void)

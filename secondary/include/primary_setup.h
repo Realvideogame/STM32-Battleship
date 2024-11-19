@@ -68,6 +68,7 @@ typedef struct _users {
 } users;
 
 users bs_users;
+// users match_users;
 player* player_1;
 player* player_2;
 int8_t* game_status; // 0 - placing ship phase, 1 - player 1's turn, 2 - player 2's turn, 3 - player 1 won, 4 - player 2 won, 5 - Tied Game
@@ -81,6 +82,7 @@ void internal_clock();
 void mapgen(void);
 void square_set(uint8_t, uint8_t, player*, player*);
 void update_grid();
+void display_stats(void);
 
 uint8_t col; // the column being scanned
 

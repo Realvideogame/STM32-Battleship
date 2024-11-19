@@ -34,7 +34,7 @@ int main() {
     mapgen(); //display empty map to main
     enable_gpioC();
     setup_tim14();
-    setup_serial();
+    // setup_serial();
 
     ship_size[0] = 5;
     ship_size[1] = 4;
@@ -117,6 +117,7 @@ int main() {
 
     // phase 3 - post game stats
     update_grid();
+    display_stats();
     
 }
 /*

@@ -11,16 +11,16 @@ The game is implemented using two STM32F091 microcontrollers. Each player uses a
    - Ship sizes are 5,4,3,2,2.
    - Both players can place their ships at the same time.
    - This phase ends when both players have placed all ships.
-3. **Gameplay Phase**: Players take turns attacking the opponent's grid.  
+2. **Gameplay Phase**: Players take turns attacking the opponent's grid.  
    - If attacking, the player sees their previous attacks. The other player sees their own grid, with enemy attacks overlaid.  
    - Turn time is indicated by an RGB LED controlled through PWM:  
      - The green LED decreases in brightness as time runs out.  
      - When nearly out of time, the LED flashes red.
    - The game will end when a player's ships are all sunk. If the first player to go wins, the second player is allowed a redemption turn, which can result in a tie.
-4. **Post-Game Phase**: Displays game statistics for players to review.
-  - Number of Turns
-  - Player accuracy
-  - Greatest Hit/Miss Streaks 
+3. **Post-Game Phase**: Displays game statistics for players to review.
+   - Number of Turns
+   - Player accuracy
+   - Greatest Hit/Miss Streaks 
 
 ## Features  
 - **Keypad User Input**:  
@@ -38,7 +38,7 @@ The game is implemented using two STM32F091 microcontrollers. Each player uses a
 - **TFT LCD Screens**: Used to display the game grids.  
 - **RGB LED**: Provides real-time feedback for turn duration.
 - **4x4 Keypad**: Allows for user input
-- - **Power Supply**: Game be powered by a generic 5V wall plug.
+- **Power Supply**: Game be powered by a generic 5V wall plug.
 
 ## How to Play    
 1. Each player places their ships in any valid configuration.

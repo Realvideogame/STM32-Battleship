@@ -1,6 +1,6 @@
 # Battleship Game Implementation with STM32F091 Microcontrollers  
 
-This project was developed as part of [ECE 36200 - Microcontroller Systems and Interfacing](https://engineering.purdue.edu/ECE/Academics/Undergraduates/UGO/CourseInfo?courseid=278&show=true) at Purdue University. The implementation includes elements of both hardware and software design, leveraging the STM32F091 microcontroller to recreate the classic game of Battleship.  
+This project was developed as part of [ECE 36200 - Microcontroller Systems and Interfacing](https://engineering.purdue.edu/ECE/Academics/Undergraduates/UGO/CourseInfo/courseInfo?courseid=612&show=true&type=undergrad) at Purdue University. The implementation includes elements of both hardware and software design, leveraging the STM32F091 microcontroller to recreate the classic game of Battleship.  
 
 ## Acknowledgments  
 - **Niraj Menon**: Lab coordinator for ECE 36200, contributed to the LCD implementation code and designed the development board used in this project. Some functions relating to input are taken from labwork for ECE 36200 as well.  
